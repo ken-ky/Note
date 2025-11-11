@@ -32,7 +32,7 @@ int credit_card::calc_free_days(date consume_day) const {
                   bill_day_no); // 得到记账日
 
     if (consume_day > bill_day) {
-        bill_day += months(1);
+        bill_day += months(1); // 如果超过这个月的结账日，就再加一个月
     }
     return (bill_day - consume_day).days() + 20;
 }
@@ -40,5 +40,9 @@ int credit_card::calc_free_days(date consume_day) const {
 int main() {
     credit_card a("A bank", 25); // A银行的记账日是每月的25日
     credit_card b("B bank", 12); // B银行的记账日是每月的12号
+
+    credit_card tmp = std::max(a, b);
+    cout << "You should use " << tmp.bank_name
+         << ", free days = " << tmp.calc_free_days() << endl;
     return 0;
 }
