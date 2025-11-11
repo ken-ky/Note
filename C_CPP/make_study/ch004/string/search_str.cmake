@@ -1,0 +1,6 @@
+string(FIND aba a res)
+message("${res}")
+string(FIND aba a res REVERSE)
+message("${res}")
+string(FIND aba c res)
+message("${res}")

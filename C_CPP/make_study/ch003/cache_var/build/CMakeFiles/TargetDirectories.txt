@@ -1,0 +1,2 @@
+/home/watson/study/make_study/ch002/cache_var/build/CMakeFiles/edit_cache.dir
+/home/watson/study/make_study/ch002/cache_var/build/CMakeFiles/rebuild_cache.dir

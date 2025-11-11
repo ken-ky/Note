@@ -1,0 +1,11 @@
+function(f)
+    set(a "modified a")
+    set(b "b")
+    set(c "c" PARENT_SCOPE)
+endfunction(f)
+
+set(a "a")
+f()
+message("a: ${a}")
+message("b: ${b}")
+message("c: ${c}")

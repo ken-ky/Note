@@ -1,0 +1,7 @@
+include(print_list.cmake)
+set(a "a;b;c")
+set(b a;b;c)
+set(c a b c)
+print_list(a)
+print_list(b)
+print_list(c)

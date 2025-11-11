@@ -1,0 +1,8 @@
+cmake_minimum_required(VERSION 3.20)
+if(NOT TRUE AND FALSE OR TRUE)
+    message("(NOT FALSE AND TRUE OR FALSE) is true")
+endif()
+if(NOT (TRUE AND (FALSE OR TRUE)))
+else()
+    message("(NOT (TRUE AND (FALSE OR TRUE))) is false")
+endif()

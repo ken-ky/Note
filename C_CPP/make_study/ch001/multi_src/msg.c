@@ -1,0 +1,1 @@
+const char *msg = "Hello, I\'m from msg.c!\n";
