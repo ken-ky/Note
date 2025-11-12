@@ -1,0 +1,27 @@
+### 内存管理
+<br>
+
+#### smart_ptr库
+
+##### RAII机制
++ RAII机制（`Resource Acquisition is Initialization`，资源获取即初始化）：在类的构造函数里申请资源，然后使用资源，最终在析构函数中释放资源
++ 两种内存分配方式：
+  + 对象是用声明的方式在栈上创建（一个局部对象），那么`RAII`机制会正常工作，离开作用域时，该对象会自动销毁，从而调用析构函数释放资源
+  + 但如果对象是用`new`（或`malloc`）在堆上创建的，**那么它的析构函数无法自动调用**，需要对应调用`delete`（或`free`）销毁，才能释放资源
+<br>
+
+##### 智能指针（smart pointer）
++ 智能指针：智能指针可以在退出作用域时（无论是正常流程还是因异常而离开）总调用`delete`来析构在堆上动态分配的对象
+  + `auto_ptr`：最早的智能指针，见于`C++98`，解决了自动释放获取资源的部分问题
+    ```c++
+    {
+        auto_ptr<class_name> p1(new class_name);
+        
+        auto_ptr<demo_class> p2(factory.create());
+    }   // 离开作用域，p1 和 p2 自动析构
+    ```
+    + 实际上`auto_ptr`是个对象，但是由于其重载了`operator*`和`operator->`，行为类似指针，因此可以将其使用在大多数普通指针可用的地方
+    + 但`auto_ptr`存在缺陷，所以新的 C++ 标准提供了更完善的`unique_ptr`、`shared_ptr`和`weak_ptr`【[具体内容](https://blog.csdn.net/Dasis/article/details/121663794)】
+      + 不能有两个`auto_ptr`对象拥有同一个内部指针的所有权，因为有可能在某个时机，两者均会尝试析构这个内部指针
+      + 两个`auto_ptr`对象发生赋值操作时，右者对象会丧失该所有权
+  + 
