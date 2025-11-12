@@ -1,7 +1,7 @@
 ### 内存管理
 <br>
 
-#### smart_ptr库
+#### smart_ptr库概要
 
 ##### RAII机制
 + RAII机制（`Resource Acquisition is Initialization`，资源获取即初始化）：在类的构造函数里申请资源，然后使用资源，最终在析构函数中释放资源
@@ -24,4 +24,15 @@
     + 但`auto_ptr`存在缺陷，所以新的 C++ 标准提供了更完善的`unique_ptr`、`shared_ptr`和`weak_ptr`【[具体内容](https://blog.csdn.net/Dasis/article/details/121663794)】
       + 不能有两个`auto_ptr`对象拥有同一个内部指针的所有权，因为有可能在某个时机，两者均会尝试析构这个内部指针
       + 两个`auto_ptr`对象发生赋值操作时，右者对象会丧失该所有权
-  + 
+  + C++ 标准提供了更完善的智能指针，这些指针都基于`boost.smart_ptr`库，
+    + 这些指针位于`<boost/smart_ptr.hpp>`，并且都是异常安全的（`exception safe`）
+      + `unique_ptr`
+      + `shared_ptr`
+      + `weak_ptr`
+    + 另外还有以下智能指针类型：
+      + `scoped_ptr`
+      + `intrusive-ptr`
+<br>
+
+#### `scoped_ptr`
+`scoped_ptr`与`auto_ptr/unique_ptr`类似，它包装了`new`操作符在堆上分配的动态对象，能够保证动态创建的对象在任何时候都可以被正确地删除
