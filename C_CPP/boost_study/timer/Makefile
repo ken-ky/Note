@@ -16,5 +16,8 @@ simple_date_cal:
 free_credit_card:
 	g++ ./comprehensive_test/free_credit_card.cpp -lboost_date_time -o ./comprehensive_test/free_credit_card_exam
 
+microsec_clock:
+	g++ ./comprehensive_test/microsec_clock.cpp -lboost_date_time -o ./comprehensive_test/microsec_clock_exam
+
 clean:
 	rm *.o *_exam ./comprehensive_test/*_exam|true
