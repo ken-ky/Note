@@ -1,7 +1,38 @@
-#### 面向对象备忘
+#### C/C++ 备忘
 
 ##### 关键字
-+ [friend 关键字](https://zhuanlan.zhihu.com/p/620730340)
++ [`inline`关键字](https://c.biancheng.net/view/4tevnqv.html)
+  + `inline` 关键字用于建议编译器尝试将函数体内联到每个函数调用的位置。
+  + **编译器会在函数调用的位置直接插入函数的代码**，而不是执行常规的函数调用，从而减少函数调用的运行时开销
++ [`final`关键字](https://c.biancheng.net/view/90vn2fi.html)
+  + 在虚函数声明或定义的声明符之后用 `final` 防止在派生类中对函数进行进一步覆盖
+    ```c++
+    class Derived2: public Derived1 {
+        virtual void foo() final {}
+    };
+    ```
+  + 在类声明中的类名后用 `final` 防止类被进一步继承
+    ```C++
+    class Derived4 final: public Derived1 {
+        virtual void foo() override {}
+    };
+    ```
++ [`override`关键字](https://c.biancheng.net/view/90vn2fi.html)
+  + 在虚函数的声明或定义中，它可以保证函数确实覆盖了一个基类函数，否则，编译器会报错
+    ```C++
+    class Base {
+    public:
+        virtual void foo() {}
+        virtual void bar() {}
+    };
+    
+    class Derived: public Base {
+    public:
+        void foo() override {}  // 成功覆盖基类
+        virtual void bar(char const c) override {}  // 不能覆盖，因为基类没有包含这样的虚函数
+    };
+    ```
++ [`friend`关键字](https://zhuanlan.zhihu.com/p/620730340)
   + 友元函数
     + 友元函数是在当前类以外定义的（不属于当前类的函数也可以在类中声明）
     + 友元函数可以访问当前类中的所有成员
@@ -91,7 +122,7 @@
         return 0;
     }
     ```
-+ [explicit 关键字](https://blog.csdn.net/weixin_45031801/article/details/137796214)
++ [`explicit`关键字](https://blog.csdn.net/weixin_45031801/article/details/137796214)
   + 用于修饰**只有一个参数的类构造函数**，以表明该构造函数是显式的，而非隐式的
   + 禁止类对象之间的隐式转换，并禁止隐式调用拷贝构造函数
 <br>
