@@ -11,6 +11,9 @@ using namespace boost::gregorian;
 using namespace boost::posix_time;
 
 template <typename Clock = microsec_clock> class basic_ptimer {
+  private:
+    ptime _start_time; // 保存计时开始时间
+
   public:
     basic_ptimer() { // 初始化开始时间
         restart();
@@ -27,9 +30,6 @@ template <typename Clock = microsec_clock> class basic_ptimer {
     ~basic_ptimer() { // 析构函数自动输出时间
         elapsed();
     }
-
-  private:
-    ptime _start_time; // 保存计时开始时间
 };
 
 typedef basic_ptimer<microsec_clock> ptimer;
