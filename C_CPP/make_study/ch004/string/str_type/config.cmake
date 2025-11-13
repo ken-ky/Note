@@ -1,0 +1,10 @@
+include(template_def.cmake)
+set(a "a_val")
+set(b "b_val")
+set(C "C_val")
+set(D "D_val")
+set(E "E_val")
+set(F "F_val")
+
+string(CONFIGURE ${template} res)
+message(${res})
