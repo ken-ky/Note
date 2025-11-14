@@ -23,7 +23,7 @@
     + 但`auto_ptr`存在缺陷，所以新的 C++ 标准提供了更完善的`unique_ptr`、`shared_ptr`和`weak_ptr`【[具体内容](https://blog.csdn.net/Dasis/article/details/121663794)】
       + 不能有两个`auto_ptr`对象拥有同一个内部指针的所有权，因为有可能在某个时机，两者均会尝试析构这个内部指针
       + 两个`auto_ptr`对象发生赋值操作时，右者对象会丧失该所有权
-  + C++ 标准提供了更完善的智能指针，这些指针都基于`boost.smart_ptr`库，参考【[一文读懂智能指针](https://zhuanlan.zhihu.com/p/150555165)】
+  + C++ 标准提供了更完善的智能指针，这些指针都基于`boost.smart_ptr`库，参考【[一文读懂智能指针](https://zhuanlan.zhihu.com/p/150555165)、[万字长文详解智能指针](https://zhuanlan.zhihu.com/p/672745555)】
     + 这些指针位于`<boost/smart_ptr.hpp>`，并且都是异常安全的（`exception safe`）
       + `unique_ptr`
       + `shared_ptr`
