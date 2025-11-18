@@ -28,6 +28,7 @@
       + `unique_ptr`
       + `shared_ptr`
       + `weak_ptr`
+      这些指针内容在`../../ex-cpp/smart_ptr`中会有更详细的内容
     + 另外还有以下智能指针类型：
       + `scoped_ptr`
       + `intrusive-ptr`
@@ -35,7 +36,8 @@
 
 #### `scoped_ptr`
 + `scoped_ptr`与`auto_ptr/unique_ptr`类似，它包装了`new`操作符在堆上分配的动态对象，能够保证动态创建的对象在任何时候都可以被正确地删除。
-+ 但是`scoped_ptr`的所有权更严格，无法转让，甚至无法收回
++ 但是`scoped_ptr`的所有权更严格，**无法转让，甚至无法收回**
++ 标准容器也无法容纳管理`scoped_ptr`
 <br>
 
 ##### 操作函数
