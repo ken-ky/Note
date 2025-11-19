@@ -70,17 +70,9 @@
   void intrusive_ptr_release(T* p); // 减少引用计数
   ```
   + `instrusive_ptr_release()`函数中必须检查引用计数，因为`instrusive_ptr`不负责销毁实例
-+ 包装已有类
-  + 假设已经实现了引用计数类：
-    ```cpp
-    struct counted_data { // 实现引用计数类
-      int m_count = 0;  // 引用计数
-      ... // 其它数据成员
-    };
-    ```
++ 包装已有类：引入头文件`<boost/smart_ptr/intrusive_ptr.hpp>`
+  + 假设已经实现了引用计数类
   + 为了让`instrusive_ptr`正常工作，需要实现它要求的两个回调函数：
-    ```cpp
-    void instrusive_ptr_add_ref(counted_date* p) {
-      
-    }
-    ```
+    + `void instrusive_ptr_add_ref(counted_data* p)`增加引用计数
+    + `void intrusive_ptr_release(counted_data* p)`减少引用计数
++ 引用计数器：为了简化引用计数的工作，在头文件`<boost/smart_ptr/intrusive_ref_counter.hpp>`定义了一个辅助类`intrusive_ref_counter`
