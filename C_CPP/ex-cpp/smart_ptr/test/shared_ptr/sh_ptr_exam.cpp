@@ -1,7 +1,10 @@
 #include <cassert>
+#include <exception>
 #include <functional>
 #include <iostream>
 #include <memory>
+#include <set>
+#include <utility>
 #include <vector>
 
 using namespace std;
@@ -127,11 +130,84 @@ void test6() {
     cout << bool_test() << endl;
 }
 
+// 指针转型函数
+// 为了支持转换shared_ptr指向对象能够转型为派生类指针
+// 且转换后的指针仍需要维持被shared_ptr管理，提供了一些相关函数
+void test7() {
+    // static_cast<T>()
+    // const_cast<T>()
+    // dynamic_cast<T>()
+
+    // 将exception向下转型为bad_exception
+    shared_ptr<exception> sp1(new bad_exception);
+    auto sp2 = dynamic_pointer_cast<bad_exception>(sp1);
+    auto sp3 = static_pointer_cast<exception>(sp2);
+
+    assert(sp3 == sp1);
+}
+
+// shared_ptr<void>
+// 这种指针可以存储void*型指针，而void*型指针可以指向任意类型
+// 因此shared_ptr<void>就像是一个泛型的指针容器
+
+// 删除器的高级用法
+// 由于空指针可以是任意类型，因此利用shared_ptr<void>还可以实现退出作用域
+// 时调用任意函数
+void test8() {
+    cout << "test8:" << endl;
+
+    auto any_func = [&](void *p) { cout << "some operate" << endl; };
+
+    shared_ptr<void> p(nullptr, any_func); // 容纳空指针，定制删除器
+} // 在退出作用域时，将执行 any_func()
+
+// 别名构造函数（aliasing）
+// shared_ptr(const shared_ptr<Y> &r, element_type *p)
+// 共享r的引用计数，但它实际持有的却另外一个与r毫无关系的指针p
+void test9() {
+    auto p1 = make_shared<pair<int, int>>(0, 1); // 一个pair智能指针
+
+    shared_ptr<int> p2(p1, &p1->second);
+    assert(p1.use_count() == 2 && p1.use_count() == p2.use_count());
+
+    assert((void *)p1.get() != (void *)p2.get()); // 指向内容不同
+    assert(&p1->second == p2.get());              // 指向的是另外的指针
+}
+
+// owner_less
+#include <boost/smart_ptr/owner_less.hpp>
+
+void test10() {
+    typedef shared_ptr<int> int_ptr;          // 共享指针typedef
+    typedef owner_less<int_ptr> int_ptr_less; // 函数对象typedef
+
+    int_ptr p1(new int(10)); // 共享指针
+    int n = 20;
+    int_ptr p2(p1, &n); // 别名构造
+
+    assert(!int_ptr_less()(p1, p2) && // 两者即不小于也不大于，及等价
+           !int_ptr_less()(p2, p1));
+
+    typedef set<int_ptr> int_set; // 关联容器typedef
+    int_set s;
+
+    s.insert(p1);          // 插入两个元素
+    s.insert(p2);          // 因为等价所以不会被插入
+    assert(s.size() == 1); // 实际容器里只有一个元素
+}
+
 int main() {
     test1();
     test2();
     test3();
     test4();
     test5();
+
+    // 高级议题
+    test6();
+    test7();
+    test8();
+    test9();
+    test10();
     return 0;
 }

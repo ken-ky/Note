@@ -54,3 +54,33 @@
   + 若`scoped_ptr`保存了空指针，那么重载的`*`与`()`都会认为未定义
   + `scoped_ptr`可以自动转换为`bool`，用于判断是否持有有效指针（非空）
   + `scoped_ptr`将拷贝构造函数和赋值函数都声明为私有，保证指针绝对安全
+<br>
+
+#### `intrusive_ptr`
++ `intrusive_ptr`也是一种引用计数型智能指针
+  + 实际上它并不一定要“侵入”代理对象的内部修改数据
+  + 如果现存代码已经有了引用计数机制管理的对象，那么`intrusive_ptr`是一个非常好的选择
+  + 它可以包装已有对象从而得到`shared_ptr`类似的智能指针
+<br>
+
+##### 用法
++ 调用以下两个函数来**间接管理**引用计数：
+  ```cpp
+  void intrusive_ptr_add_ref(T* p); // 增加引用计数
+  void intrusive_ptr_release(T* p); // 减少引用计数
+  ```
+  + `instrusive_ptr_release()`函数中必须检查引用计数，因为`instrusive_ptr`不负责销毁实例
++ 包装已有类
+  + 假设已经实现了引用计数类：
+    ```cpp
+    struct counted_data { // 实现引用计数类
+      int m_count = 0;  // 引用计数
+      ... // 其它数据成员
+    };
+    ```
+  + 为了让`instrusive_ptr`正常工作，需要实现它要求的两个回调函数：
+    ```cpp
+    void instrusive_ptr_add_ref(counted_date* p) {
+      
+    }
+    ```
