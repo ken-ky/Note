@@ -130,6 +130,26 @@
 ##### 模板类编程
 + 参考：
   + [雾里看花：真正意义上的理解 C++ 模板](https://zhuanlan.zhihu.com/p/655902377)
++ 结构外成员函数示例：
+  ```cpp
+  template<typename T> struct Exam {
+    ...
+    Exam();
+    void func();
+    ...
+  };
+  
+  // 结构外的成员函数定义
+  template<typename T> Exam<T>::Exam() {
+    // 相关构造定义
+    ...
+  }
+  
+  template<typename T> void Exam<T>::func() {
+    // 函数内容
+    ...
+  }
+  ```
 <br>
 
 ##### 设计模式
