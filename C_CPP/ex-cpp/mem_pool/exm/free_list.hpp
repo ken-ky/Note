@@ -1,8 +1,23 @@
-#include "free_list.hpp"
+#pragma once
+#include <cstddef>
 #include <iostream>
-#include <new>
 
-using namespace std;
+using std::cout;
+using std::endl;
+
+// 内存块信息表
+template <typename T> struct memoryblock {
+    int nsize;              // 该内存的大小
+    int nfree;              // 剩余可分配的单位
+    int nfirst;             // 当前可分配的第一个单位序号
+    memoryblock *next;      // 下一个内存块
+    unsigned char adata[1]; // 用于标记分配单元开始的位置
+
+    memoryblock(int n_unit_size, int n_unit_amount);
+
+    void *operator new(std::size_t, int nUnitSize, int nUnitAmount);
+    void operator delete(void *pblock);
+};
 
 /* memoryblock 方法定义 */
 // 内存块的构造函数
@@ -40,8 +55,23 @@ template <typename T> void memoryblock<T>::operator delete(void *pblock) {
     cout << "---------------调用内存块的析构函数----------------" << endl;
 }
 
+/* memorypool */
+// 链表头memorypool
+template <typename T> struct memorypool {
+    int n_init_size;           // 首块长度
+    int n_grow_size;           // 后续块长度
+    int n_unit_size;           // 定义存储单位大小
+    memoryblock<T> *block_ptr; // 指向内存块链表的指针
+
+    memorypool(int nGrowSize = 10, int nInitSize = 3);
+    ~memorypool();
+
+    void *allocate(size_t num);
+    void free(void *pfree);
+};
+
 /* memorypool 方法定义 */
-#define MEMPOOL_ALIGNMENT 4
+#define MEMPOOL_ALIGNMENT 8
 
 // memorypool构造函数
 template <typename T> memorypool<T>::memorypool(int nGrowSize, int nInitSize) {
@@ -68,9 +98,8 @@ template <typename T> memorypool<T>::memorypool(int nGrowSize, int nInitSize) {
 template <typename T> memorypool<T>::~memorypool() {
     memoryblock<T> *my_block_p = block_ptr->next;
     while (my_block_p != nullptr) {
+        my_block_p = my_block_p->next;
         delete my_block_p;
-        my_block_p = block_ptr;
-        block_ptr = my_block_p->next;
     }
     cout << "---------------调用内存池的析构函数----------------" << endl;
 }
@@ -121,6 +150,44 @@ template <typename T> void *memorypool<T>::allocate(size_t num) {
             my_block_p->next = block_ptr;
             block_ptr = my_block_p;
             return (void *)my_block_p->adata;
+        }
+    }
+    return nullptr;
+}
+
+// 释放空间方法
+template <typename T> void memorypool<T>::free(void *pfree) {
+    // 找到p所在的块
+    cout << "释放存储单位内存空间" << endl;
+
+    memoryblock<T> *my_block_p = block_ptr;
+    memoryblock<T> *pre_block = nullptr;
+
+    while (my_block_p != nullptr && (block_ptr->adata > pfree ||
+                                     my_block_p->adata + my_block_p->nsize)) {
+        pre_block = my_block_p;
+        my_block_p = my_block_p->next;
+    }
+
+    // 该内存块在内存池my_block_p所指向的内存块中
+    if (my_block_p != nullptr) {
+        // 1.修改数组链表
+        *((unsigned short *)pfree) = my_block_p->nfirst;
+        my_block_p->nfirst =
+            (unsigned short)((unsigned long)pfree -
+                             (unsigned long)my_block_p->adata) /
+            n_init_size;
+        my_block_p->nfree++;
+
+        // 2.判断是否需要向系统释放内存
+        if (my_block_p->nsize == my_block_p->nfree * n_unit_size) {
+            // 在链表中删除
+            delete (my_block_p);
+        } else {
+            // 将该block插入队首
+            pre_block = my_block_p->next;
+            my_block_p->next = block_ptr;
+            block_ptr = my_block_p;
         }
     }
 }
