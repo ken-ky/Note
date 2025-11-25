@@ -34,13 +34,13 @@
       + `intrusive-ptr`
 <br>
 
-#### `scoped_ptr`
+##### `scoped_ptr`
 + `scoped_ptr`与`auto_ptr/unique_ptr`类似，它包装了`new`操作符在堆上分配的动态对象，能够保证动态创建的对象在任何时候都可以被正确地删除。
 + 但是`scoped_ptr`的所有权更严格，**无法转让，甚至无法收回**
 + 标准容器也无法容纳管理`scoped_ptr`
 <br>
 
-##### 操作函数
+###### 操作函数
 |成员函数|描述|备注|
 |---|---|---|
 |`scoped_ptr(T* p)`|构造函数|`p`必须是由`new`操作符分配空间|
@@ -56,14 +56,14 @@
   + `scoped_ptr`将拷贝构造函数和赋值函数都声明为私有，保证指针绝对安全
 <br>
 
-#### `intrusive_ptr`
+##### `intrusive_ptr`
 + `intrusive_ptr`也是一种引用计数型智能指针
   + 实际上它并不一定要“侵入”代理对象的内部修改数据
   + 如果现存代码已经有了引用计数机制管理的对象，那么`intrusive_ptr`是一个非常好的选择
   + 它可以包装已有对象从而得到`shared_ptr`类似的智能指针
 <br>
 
-##### 用法
+###### 用法
 + 调用以下两个函数来**间接管理**引用计数：
   ```cpp
   void intrusive_ptr_add_ref(T* p); // 增加引用计数
@@ -76,3 +76,37 @@
     + `void instrusive_ptr_add_ref(counted_data* p)`增加引用计数
     + `void intrusive_ptr_release(counted_data* p)`减少引用计数
 + 引用计数器：为了简化引用计数的工作，在头文件`<boost/smart_ptr/intrusive_ref_counter.hpp>`定义了一个辅助类`intrusive_ref_counter`
+<br>
+
+#### `pool` 库概要
++ `boost.pool`库基于简单分隔存储的思想实现了一个快速、紧凑的内存池库，不仅可以管理大量的对象，还可以用作STL的内存分配器
++ `pool`库包含4个组成部分：最简单的`pool`、分配类实例的`object_pool`、单件内存池`singleton_pool`和可用于标准库的`pool_alloc`【最后一个组件详见`ex-cpp`】
+<br>
+
+##### `pool`
++ `pool`池只能分配一些基本类型的对象，比如：`int`、`double`等
++ `pool`模板类型参数`UserAllocator`是一个用户定义的内存分配器
+  + 通常可以直接用默认的`default_user_allocator_new_delete`，它使用`new []`和`delete []`分配内存
+<br>
+
+###### 操作函数
++ 构造函数：`pool`的构造函数可以接收`size_t`类型的整数，代表每次分配内存块的大小（而非内存池大小）
+  ```c++
+  pool<> p(sizeof(int));
+  ```
++ 分配函数：
+  + `malloc(void*)`：用`void*`指针返回内存池中分配的内存块，大小为之前指定的内存块大小
+  + `ordered_malloc(void*, size_t)`：所带的参数表示连续分配的n块内存，分配时会合并空闲块链表
++ 释放块函数：与`malloc`操作基本对应
+  + `free(void*)`：释放指向的内存块
+  + `ordered_free(void*, size_t)`：释放指向的连续内存
++ `is_from()`：测试分配后的内存块是否从属于某一内存池
+  ```c++
+  p.is_from(p1);  // p1是否来自p
+  ```
++ 释放内存函数：
+  + `release_memory()`：让内存池释放所有未被分配的内存
+  + `purge_memory()`：强制释放`pool`持有的所有内存【`pool`析构函数就是使用这一函数实现】
+<br>
+
+##### `object_pool`
