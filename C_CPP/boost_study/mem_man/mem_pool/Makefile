@@ -1,5 +1,5 @@
 pool: pool.cpp
-	g++ pool.cpp -o pool_exam
+	g++ -std=c++11 pool.cpp -o pool_exam
 
 clean:
 	rm -f *.o *_exam

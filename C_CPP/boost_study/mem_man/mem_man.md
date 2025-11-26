@@ -110,3 +110,24 @@
 <br>
 
 ##### `object_pool`
++ `object_pool`是`pool`的子类，但它使用的是保护继承，因此`pool`的接口
++ `object_pool`的特殊之处是`construct()`和`destroy()`函数
+  + `construct()`先调用`malloc()`分配内存，再在内存块使用传入的参数调用类的构造函数，返回一个已经初始化的对象指针
+  + `destroy()`先调用对象的析构函数，再用`free()`释放内存块
+  + 在默认情况下，在使用`object_pool`时，最多只能使用3个参数来创建对象
+<br>
+
+###### 更多参数的构造函数
++ 基于宏预处理`m4`（通常`UNIX`系统自带）实现一个变通的扩展机制
+  + `pool`库在目录`boost/pool/detail`下提供了`pool_construct.m4`和`pool_construct_simple.m4`的脚本
+  + 只需简单提供一个整数参数`N`，便能自动生成具备创建`N`个参数的`construct()`函数的源代码
++ 使用`C++11`的可变参数模板特性，定义一个辅助模板函数，支持任意的参数
+<br>
+
+##### `singleton_pool`
++ `singleton_pool`与`pool`的接口完全一致，可以用它分配简单数据类型（POD）的内存指针，但它是一个“单件”
++ 默认使用`boost.thread`库提供线程安全保证，因此需要将它链接`boost_thread`库
+  + 如果不使用多线程，可以在头文件前定义宏`BOOST_POOL_NO_MT`
++ 主要有两个模板参数：
+  + `Tag`仅仅用于标记不同的单件，可以是空类，甚至可以只进行声明
+  + 第二个参数指示`pool`分配的内存块大小
