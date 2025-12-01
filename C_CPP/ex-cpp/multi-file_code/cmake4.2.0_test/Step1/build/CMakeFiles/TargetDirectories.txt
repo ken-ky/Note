@@ -1,0 +1,8 @@
+/home/asus/Note/C_CPP/ex-cpp/multi-file_code/cmake4.2.0_test/Step1/build/CMakeFiles/edit_cache.dir
+/home/asus/Note/C_CPP/ex-cpp/multi-file_code/cmake4.2.0_test/Step1/build/CMakeFiles/rebuild_cache.dir
+/home/asus/Note/C_CPP/ex-cpp/multi-file_code/cmake4.2.0_test/Step1/build/Tutorial/CMakeFiles/Tutorial.dir
+/home/asus/Note/C_CPP/ex-cpp/multi-file_code/cmake4.2.0_test/Step1/build/Tutorial/CMakeFiles/edit_cache.dir
+/home/asus/Note/C_CPP/ex-cpp/multi-file_code/cmake4.2.0_test/Step1/build/Tutorial/CMakeFiles/rebuild_cache.dir
+/home/asus/Note/C_CPP/ex-cpp/multi-file_code/cmake4.2.0_test/Step1/build/MathFunctions/CMakeFiles/MathFunctions.dir
+/home/asus/Note/C_CPP/ex-cpp/multi-file_code/cmake4.2.0_test/Step1/build/MathFunctions/CMakeFiles/edit_cache.dir
+/home/asus/Note/C_CPP/ex-cpp/multi-file_code/cmake4.2.0_test/Step1/build/MathFunctions/CMakeFiles/rebuild_cache.dir

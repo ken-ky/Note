@@ -1,0 +1,9 @@
+{
+	"InstallScripts" : 
+	[
+		"/home/asus/Note/C_CPP/ex-cpp/multi-file_code/cmake4.2.0_test/Step1/build/cmake_install.cmake",
+		"/home/asus/Note/C_CPP/ex-cpp/multi-file_code/cmake4.2.0_test/Step1/build/Tutorial/cmake_install.cmake",
+		"/home/asus/Note/C_CPP/ex-cpp/multi-file_code/cmake4.2.0_test/Step1/build/MathFunctions/cmake_install.cmake"
+	],
+	"Parallel" : false
+}

@@ -1,3 +1,6 @@
+### 构建一种新东西
+<br>
+
 #### Makefile小白
 
 ##### 学习链接
@@ -35,3 +38,51 @@
 + 双冒号：可以将一条规则分多块进行定义（允许同名规则补充）
 + `@`：执行时不打印该行命令
 + `.PHONY`：伪目标，用于执行特殊操作，使得直接`make`时不会构建
+<br>
+
+#### CMakeLists脑残
+##### 入门如入坟
++ 参考链接
+  + [CMake Tutorial](https://cmake.org/cmake/help/latest/guide/tutorial/index.html)
++ 编译基本指令：
+  + `cmake -S <dir>`：指定项目的根目录，针对存在多个`CMakeLists.txt`的情况
+  + `cmake -B <dir>`：指定项目的输出目录，当未创建此项目的`build`文件夹时，会自动创建，此时还未编译文件
+  + `cmake --build <dir>`：在`build`文件夹中查找构建项目所需的文件，形成可执行文件
+  + `cmake -G <Ninja/...> -B build`：选择特定的编译器
+  + 构建过程：
+  ```sh
+  > cmake -B build
+  ... # 构建build文件夹内容
+  > cmake --build build # 找到build文件夹，进行可执行文件编译
+  ```
++ 形成结构：
+  + 最小版本与项目名称：
+    ```cmake
+    cmake_minimum_required(VERSION 3.23)
+    
+    project(MyProjectName)
+    ```
+  + 生成项目可执行文件：
+    ```cmake
+    add_executable(MyProgram)
+    
+    target_source(MyProgram
+      PRIVATE
+        main.cxx  # 构建项目所需的源码
+    )
+    ```
+  + 目标生成（`target`命令）：
+    + `PRIVATE`：当使用构建时调用它，需要手动包含
+    + `PUBLIC`：当调用库以及构建都会调用【明确会使用到】
+    + `INTERFACE`：接口文件，不参与构建过程
+<br>
+
+##### 进阶1
++ `CMake`语言基础
+  + 阶段0
+    + `set(var "World")`：设置变量转换
+      + 展开变量`${var}`为`"World"`
+      + 许多字符串充当了`CMake`中的布尔值
+    + `cmake -P`称之为“脚本模式”，不进行构建任何可执行文件，因此不会发生构建错误
+  + 阶段1：宏、函数以及列表
+    + 宏
