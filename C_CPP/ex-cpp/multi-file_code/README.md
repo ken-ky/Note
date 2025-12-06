@@ -78,11 +78,44 @@
 <br>
 
 ##### 进阶1
-+ `CMake`语言基础
-  + 阶段0
-    + `set(var "World")`：设置变量转换
-      + 展开变量`${var}`为`"World"`
-      + 许多字符串充当了`CMake`中的布尔值
-    + `cmake -P`称之为“脚本模式”，不进行构建任何可执行文件，因此不会发生构建错误
-  + 阶段1：宏、函数以及列表
-    + 宏
++ Step0
+  + `set(var "World")`：设置变量转换
+    + 展开变量`${var}`为`"World"`
+    + 许多字符串充当了`CMake`中的布尔值
+  + `cmake -P`称之为“脚本模式”，不进行构建任何可执行文件，因此不会发生构建错误
++ Step1：宏、函数以及列表
++ Step2：分支、循环以及筛选器
++ Step3：配置与缓存变量
+  + 命令设置变量属性：
+    ```sh
+    > cmake -B build\
+      -DCOMPRESSION_SOFTWARE_USE_ZLIB=ON\
+      -DCOMPRESSION_SOFTWARE_USE_ZSTD=OFF
+    ```
+    可以在`cmake`文件中设置默认选项，使用`option()`命令，比如：
+    ```cmake
+    option(COMPRESSION_SOFTWARE_USE_ZLIB "Support Zlib compression" ON)
+    option(DCOMPRESSION_SOFTWARE_USE_ZSTD "Support Zstd compression" OFF)
+    ```
+    但是注意，外部的优先级最高
+  + 缓存变量：
+    ```cmake
+    set(ShadowVariable "In the shadow" CACHE STRING "")
+    set(ShadowVariable "Hiding the cache variable")
+    message("ShadowVariable: ${ShadowVariable}")  # Hiding the cache variable
+    
+    unset(ShadowVariable)
+    message("ShadowVariable: ${ShadowVariable}")  # In the shadow
+    ```
+    可以通过这样的方式覆盖掉错误变量
+  + 使用特定的`CMakePresets.json`设置预设
+    ```sh
+    cmake --preset <project>
+    ```
+    进行上述命令可以得到`build`文件夹，之后进行：
+    ```sh
+    cmake --build build
+    ```
+<br>
+
+##### 进阶2

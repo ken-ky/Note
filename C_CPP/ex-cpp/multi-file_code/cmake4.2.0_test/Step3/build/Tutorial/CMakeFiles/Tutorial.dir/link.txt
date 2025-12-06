@@ -1,0 +1,1 @@
+/usr/bin/c++ CMakeFiles/Tutorial.dir/Tutorial.cxx.o -o Tutorial  /usr/lib/x86_64-linux-gnu/libfmt.a ../MathFunctions/libMathFunctions.a
