@@ -1,0 +1,6 @@
+{
+    "rust-analyzer.linkedProjects": [
+        "./rust_note/basis/world_hello/Cargo.toml",
+        "./rust_note/basis/variables/Cargo.toml"
+    ]
+}
