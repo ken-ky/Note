@@ -914,5 +914,57 @@
     Hearts,
   }
   ```
-  + 枚举类型：这个类型包含了所有可能的枚举成员，而枚举值是该类型中的具体某个成员的实例
-  
+  + 枚举类型：这个类型包含了所有可能的枚举成员，而枚举值是该类型中的具体某个成员的实例:
+    ```rust
+    let heart = PokerSuit::Hearts;
+    let diamond = PokerSuit::Diamonds;
+    ```
+    + 可以通过`::`操作符来访问`PokerSuit`下具体成员，可以定义一个函数来使用它们
+      + 类型为`PokerSuit`
+      + 另外需要在定义前添加`#[derive(Debug)]`才能正常打印
+  + 枚举带值：枚举其中的类型不一定完全相同，而且可以带值
+    ```rust
+    enum Message {
+      Quit,
+      Move { x: i32, y: i32 },
+      Write(String),
+      ChangeColor(i32, i32, i32),
+    }
+    
+    // 可以使用整数值直接初始化枚举类型
+    enum Exam {
+      Zero = 0,
+      One = 1,
+      Two,
+    }
+
+    fn main() {
+      let m1 = Message::Quit;
+      let m2 = Message::Move{x:1,y:1};
+      let m3 = Message::ChangeColor(255,255,0);
+    }
+    ```
+    该枚举类型代表一条消息，这样的操作保证了可以实现某一函数需要选择上述的一种类型时均可以接纳的情况（**同一化类型**），包含四个不同成员：
+    + `Quit`没有任何关联数据
+    + `Move`包含一个匿名结构体
+    + `Write`包含一个`String`字符串
+    + `ChangeColor`包含三个`i32`
++ Option 枚举用于处理空值：Rust 抛弃了`null`，改用`Option`枚举变量来表述空值结果 [[官方文档](https://doc.rust-lang.org/std/option/enum.Option.html)]
+  + `Option`枚举包含两个成员，一个成员表示含有值`Some(T)`，另一个为`None`，定义如下：
+    ```rust
+    enum Option<T> {
+      Some(T),
+      None,
+    }
+    ```
+    + 其中的`T`是泛型参数，`Some(T)`表示该成员的数据类型为`T`
+    + `Option`被包含在了`prelude`（属于 Rust 标准库）
+    ```rust
+    let some_number = Some(5);
+    let some_string = Some("a string");
+    
+    let absent_number: Option<i32> = None;
+    ```
+    如果使用`None`而不是`Some`，需要显式表示`Some`表示的成员值类型；这有一个显著优势：
+    + 由于`Option<T>`与`T`是不同类型，因此两者无法直接进行相互操作
+    + 也就是说，想要前者与`T`类型进行运算，必须进行类型转换
