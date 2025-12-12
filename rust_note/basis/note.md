@@ -489,3 +489,430 @@
   ```
   + 其中的两个序列可以等效为`[..5]`以及`[6..]`，截取完整切片可以使用序列`[..]`
   + 但需要注意的是，切片时必须保证切的字符是完整的，譬如一个中文字符为3字节，当截取`[0..2]`时就会崩溃
+  + 另外需要注意，**切片操作是不可变借用`&str`（字符串字面量）类型**，因此改变原字符串的可变操作会导致编译出错
+  + 其它类型的切片：
+    ```rust
+    let a = [1, 2, 3, 4, 5];
+    let slice = &a[1..3];
+    assert_eq!(slice, &[2, 3]);
+    ```
+    这里的数组切片类型是`&[i32]`
+  + 和数组区别：
+    ```rust
+    // 数组类型为 [<T>; <len>]
+    let arr: [char; 3] = ['中', '国', '人'];
+    let slice: [&char] = &arr[..2]; // 引用类型为 [&<T>]
+    ```
++ 字符串：虽然 `String` 的底层是 `Vec<u8>` 也就是字节数组的形式存储的，但是它是基于 UTF-8 编码的字符序列
+  + Rust 的字符是 Unicode 类型，因此每个字符占据4个字节内存空间
+  + 但是字符串中不一样，字符串是 UTF-8 编码，也就是字符串中的字符所占的字节数是变化的 1$\sim$4，大幅降低了字符串所占用的内存空间
+  + `String` 分配在堆上、可增长且不是以`null`结尾
++ `String`与`&str`的转换：
+  + `&str`转换为`String`：以下两种方式都可以将字符串字面量转换为字符串
+    ```rust
+    String::from("hello, world")
+    "hello, world".to_string()
+    ```
+  + `String`转换为`&str`：只需要进行取引用
+    ```rust
+    fn main() {
+      let s = String::from("hello, world");
+      say_hello(&s);
+      say_hello(&s[..]);
+      say_hello(s.as_str());
+    }
+    
+    fn say_hello(s: &str) {
+      println!("{}", s);
+    }
+    ```
+    这种灵活用法是因为`deref`隐式强制转换
++ 字符串索引：在字符串不能使用`s[0]`这样的方式直接访问字符，需要使用引用`&s[<range>]`
+  + 字符串内部：字符串底层的数据存储格式实际上是`[u8]`（一个字节数组），而不同的字符对应的字节数不同，于是进行引用切片时也需要相当小心
+  + 字符串的不同表现形式：由于上述原因以及性能的考虑，Rust 中不允许去索引字符串
++ **操作字符串**
+  + 追加 (Push)：下面的方法都是**在原有的字符串上追加，并不会返回新的字符串**（所以原字符串必须由`mut`修饰）
+    + 在字符串尾部可以使用`push()`方法追加字符`char`
+    + 也可以使用`push_str()`方法追加字符串字面量
+  + 插入 (Insert)：下面的方法都需要传入两个参数，第一个是插入位置的索引，第二个是要插入的内容
+    + 可以使用`insert()`方法插入单个字符`char`
+    + 也可以使用`insert_str()`方法插入字符串字面量
+  + 替换 (Replace)：前两个方法都会返回新字符串
+    + `replace`，可以将字符串中的所有`目标字符串`替换为`新字符串`，接收的参数有两个，一个是要被替换的字符串，另一个是替换的新字符串
+    + `replacen`：承接`replace`，添加了一个新参数确定替换的次数
+    + `replace_range`：该方法是直接操作原来的字符串（需要`mut`修饰），不返回新的字符串；第一个参数是要替换字符串的范围 (range)，第二个参数是用于替换的新字符串
+  + 删除 (Delete)：这些方法仅适用于`String`，均是**直接操作原字符串**
+    + `pop`：删除并返回字符串的最后一个字符（若字符串为空，则返回`None`）
+    + `remove`：删除并返回字符串中指定位置的字符，仅接收一个参数表示起始索引位置（字节）
+    + `truncate`：删除字符串中从指定位置开始到结尾的全部字符，也要求参数是字符的合法边界
+    + `clear`：清空字符串
+  + 连接 (Concatenate)：
+    + `+`以及`+=`连接字符串，但是第二个加数必须使用`&str`，`+=`需要第一个参数标注`mut`，`+`不需要
+      + 进行运算后，第一个参数所有权会被移交（需要注意）
+    + 使用`format!`连接字符串，返回新字符串，用法类似`print!`
++ 字符串转义：
+  + 字符转义：可以通过转义的方式`\`输出`ASCII`和`Unicode`字符
+    + Unicode 字符：`let c = "\u{211D}";`
+    + 字节码：`let c = "\x52";`
+  + 其它编码字符串：
+    + `r"<str>"`：raw 字符串，不进行转义
+    + `b"<str>"`：字节数组字符串
+      + 不支持 Unicode
+      + 只能在`Debug`情况下打印（因为没有`Display`特征）
+      + 转换至`str`时可能会失败
+      + 字节数组可以不是 UTF-8 形式
+  + 保持原样，不进行转义：
+    ```rust
+    fn main() {
+      println!("{}", "hello \\x52\\x75\\x73\\x74");
+      let raw_str = r"Escapes don't work here: \x3F \u{211D}";
+      println!("{}", raw_str);
+
+      // 如果字符串包含双引号，可以在开头和结尾加 #
+      let quotes = r#"And then I said: "There is no escape!""#;
+      println!("{}", quotes);
+
+      // 如果字符串中包含 # 号，可以在开头和结尾加多个 # 号，最多加255个，只需保证与字符串中连续 # 号的个数不超过开头和结尾的 # 号的个数即可
+      let longer_delimiter = r###"A string with "# in it. And even "##!"###;
+      println!("{}", longer_delimiter);
+    }
+    ```
++ 操作 UTF-8 字符串
+  + 字符：如果希望使用 Unicode 字符的方式遍历字符串，最好使用`chars()`，例如：
+    ```rust
+    for c in "中国人".chars() {
+      println!("{}", c);
+    }
+    ```
+  + 字节：返回字符串底层字节数组表现形式`bytes()`
+  + 获取子串：这里需要使用到`utf8_slice`这个库
+    ```rust
+    // 截取字符串切片[begin..end]
+    let sl: &str = utf8_slice::slice(s: &str, begin: usize, end: usize);
+    
+    // 截取字符串切片[begin..]
+    let sl: &str = utf8_slice::from(s: &str, begin: usize);
+    
+    // 截取字符串切片[..end]
+    let sl: &str = utf8_slice::till(s: &str, end: usize);
+    
+    // 计算UTF-8的长度
+    let sl: usize = utf8_slice::len(s: &str);
+    ```
++ 字符串中的内存管理哲学
+  + 字符串字面量 (`str`) 不可变，而字符串 (`String`) 的原因在于内存回收方式
+    + 前者编码时就确定了空间大小
+    + 而后者需要向操作系统请求内存存放`String`对象，在使用完成后释放内存，归还操作系统
+      + Rust 实现时采取了`RAII`的管理思想，实现了类似 C++ 的智能指针方式
+      + 分配字符串的空间：
+        ```rust
+        let mut s = String::new();  // 分配0字节的空间
+        let mut s = String::with_capacity(len: usize);  // 分配len字节的空间
+        
+        s.as_mut_ptr(); // 查看对应的指针
+        s.len();  // 查看s对应的长度
+        s.capacity(); // 查看分配的空间
+        ```
+  + 字符切片：
+    + 一个切片引用占用了2个字大小的内存空间( 从现在开始，为了简洁性考虑，如无特殊原因，我们统一使用切片来特指切片引用 )
+    + 该切片的第一个字是指向数据的指针，第二个字是切片的长度。字的大小取决于处理器架构，例如在 x86-64 上，字的大小是 64 位也就是 8 个字节，那么一个切片引用就是 16 个字节大小
+<br>
+
+###### 元组
++ 第一印象：
+  + 元组允许多种类型组合到一起
+  + 可以通过以下方式创建一个元组：
+    ```rust
+    fn main() {
+      let tup: (i32, f64, u8) = (500, 6.4, 1);
+    }
+    ```
++ 通过使用模式匹配解构元组：
+  ```rust
+  fn main() {
+    let tup = (500, 6.4, 1);
+
+    let (x, y, z) = tup;
+
+    println!("The value of y is: {}", y);
+  }
+  ```
+  + 元组中对应的值会绑定到变量`x, y, z`上。
+  + 这就是解构：用同样的形式把一个复杂对象中的值匹配出来
++ 使用`.`解构元组：
+  ```rust
+  fn main() {
+    let x: (i32, f64, u8) = (500, 6.4, 1);
+
+    let five_hundred = x.0;
+
+    let six_point_four = x.1;
+
+    let one = x.2;
+  }
+  ```
+  + 索引从`0`开始
++ 函数场景下，元组可以作为函数返回结构，从而返回多个值
+  ```rust
+  fn main() {
+    let s1 = String::from("hello");
+
+    let (s2, len) = calculate_length(s1);
+
+    println!("The length of '{}' is {}.", s2, len);
+  }
+
+  fn calculate_length(s: String) -> (String, usize) {
+    let length = s.len(); // len() 返回字符串的长度
+
+    (s, length)
+  }
+  ```
+  + 不过这样组织结构的缺陷是，无法表明某个返回值的具体含义
+  + 这个缺陷在`元组结构体`中会得以解决
++ 需要注意：
+  + 过长的元组无法被打印输出
+<br>
+
+###### 结构体
++ 结构体语法：
+  + 结构体组成和元素类似，但是与元组不同的是，结构体可以为内部每个字段起一个富有含义的名称
+  + 结构体定义：
+    ```rust
+    struct User {
+      active: bool,
+      username: String,
+      email: String,
+      sign_in_count: u64,
+    }
+    ```
+  + 创建结构体实例：
+    ```rust
+    let user1 = User {
+      email: String::from("someone@example.com"),
+      username: String::from("someusername123"),
+      active: true,
+      sign_in_count: 1,
+    };
+    ```
+    由于没有构造函数一说，所以使用下面的方式也可以进行对应赋值：
+    ```rust
+    struct Person {
+      name: String,
+      age: u8,
+      hobby: String
+    }
+    fn main() {
+      let age = 30;
+      let p = Person {
+        name: String::from("sunface"),
+        age,
+        hobby: String::from("study"),
+      };
+    } 
+    ```
+    需要注意：
+    + 初始化实例时，**每个字段**都需要进行初始化
+    + 初始化时某字段顺序**不需要**和结构体定义顺序一致
+  + 访问结构体字段：
+    + 通过`.`可以访问结构体实例内部的字段值
+    + 结构体不支持部分`mut`，只能设置全`mut`
+    ```rust
+    let mut user1 = User {
+      email: String::from("someone@example.com"),
+      username: String::from("someusername123"),
+      active: true,
+      sign_in_count: 1,
+    };
+
+    user1.email = String::from("anotheremail@example.com");
+    ```
+  + 简化结构体创建：
+    ```rust
+    fn build_user(email: String, username: String) -> User {
+      User {
+        email: email,
+        username: username,
+        active: true,
+        sign_in_count:1,
+      }
+    }
+    ```
+    当函数参数与结构体字段同名时，可以直接使用缩略方式进行初始化
+    ```rust
+    fn build_user(email: String, username: String) -> User {
+      User {
+        email,
+        username,
+        active: true,
+        sign_in_count:1,
+      }
+    }
+    ```
+  + 结构体更新语法：在实际场景中，根据已有结构体实例，创建新的结构体实例，例如根据已有的`user1`实例来构建`user2`：
+    ```rust
+    let user2 = User {
+      active: user1.active,
+      username: user1.username,
+      email: String::from("another@example.com"),
+      sign_in_count: user1.sign_in_count,
+    };
+    ```
+    这样的内容也提供了`结构体更新语法`：
+    ```rust
+    let user2 = User {
+      email: String::from("another@example.com"),
+      ..user1
+    };
+    ```
+    + `..`使得凡是没有显式声明的字段，都从`user1`中自动获取了，但是`..user1`这样的内容只能在结构体尾部使用
+    + 这一用法和赋值语句类似，因此`user1`中的`username`字段的所有权也被移交了，所以`user1`也无法再被使用
++ 结构体的内存排序：
+  ```rust
+  let user1 = User {
+    email: String::from("someone@example.com"),
+    username: String::from("someusername123"),
+    active: true,
+    sign_in_count: 1,
+  };
+  let user2 = User {
+      active: user1.active,
+      username: user1.username,
+      email: String::from("another@example.com"),
+      sign_in_count: user1.sign_in_count,
+  };
+  println!("{}", user1.active);
+  // 下面这行会报错
+  println!("{:?}", user1);
+  ```
+  上面定义的`File`结构体在内存中的排序如下图所示：
+  ![](https://pic3.zhimg.com/80/v2-8cc4ed8cd06d60f974d06ca2199b8df5_1440w.png)
+  + 从图中可以清晰地看出 `File` 结构体两个字段 `name` 和 `data` 分别拥有底层两个 `[u8]` 数组的所有权（`String` 类型的底层也是 `[u8]` 数组），通过 `ptr` 指针指向底层数组的内存地址，这里你可以把 `ptr` 指针理解为 Rust 中的引用类型。
+  + 该图片也侧面印证了：**把结构体中具有所有权的字段转移出去后，将无法再访问该字段，但是可以正常访问其它的字段**。
++ 元组结构体 (Tuple Struct)：结构体必须要有名称，但是结构体的字段可以没有名称（元组结构体）
+  ```rust
+  struct Point(i32, i32, i32);
+  
+  let origin = Point(0, 0, 0);
+  ```
+  + 拆解值时，应当进行如下操作：
+    ```rust
+    struct Color(i32, i32, i32);
+    struct Point(i32, i32, i32);
+    fn main() {
+      let v = Point(0, 127, 255);
+      check_color(v);
+    }   
+
+    fn check_color(p: Point) {
+      let Point(x, _, z) = p;
+      assert_eq!(x, 0);
+      assert_eq!(p.1, 127);
+      assert_eq!(z, 255);
+    }
+    ```
++ 单元结构体 (Unit-like Struct)：如果你定义一个类型，但是不关心该类型的内容，只关心它的行为时，就可以使用`单元结构体`：
+  ```rust
+  struct AlwaysEqual;
+  
+  let subject = AlwaysEqual;
+  
+  impl SomeTrait for AlwaysEqual {
+    ...
+  }
+  ```
++ 结构体数据的所有权：
+  + 在之前的结构体定义中，使用了`String`类型而不是基于引用的`&str`字符串切片类型，因为需要这个结构体拥有它所有的数据，而不是从其它地方借用数据
+  + 也可以让 User 结构体从其它对象借用数据，不过这么做，就需要引入**生命周期(lifetimes)** 这个新概念（也是一个复杂的概念），简而言之，生命周期能确保结构体的作用范围要比它所借用的数据的作用范围要小【假如说不添加生命周期，那么会发生报错】
+  + 当然，使用引用`ref`可以引用（而非转移所有权）：
+    ```rust
+    fn main() {
+      #[derive(Debug)]
+      struct Person {
+          name: String,
+          age: Box<u8>,
+      }
+
+      let person = Person {
+          name: String::from("Alice"),
+          age: Box::new(20),
+      };
+
+      // 通过这种解构式模式匹配，person.name 的所有权被转移给新的变量 `name`
+      // 但是，这里 `age` 变量却是对 person.age 的引用, 这里 ref 的使用相当于: let age = &person.age 
+      let Person { name, ref age } = person;
+
+      println!("The person's age is {}", age);
+
+      println!("The person's name is {}", name);
+
+      // Error! 原因是 person 的一部分已经被转移了所有权，因此我们无法再使用它
+      //println!("The person struct is {:?}", person);
+
+      // 虽然 `person` 作为一个整体无法再被使用，但是 `person.age` 依然可以使用
+      println!("The person's age from person struct is {}", person.age);
+    }
+    ```
++ 使用`#[derive(Debug)]`来打印结构体信息
+  + 结构体是不具有`Display`属性的，这也就意味着无法使用`println!`直接打印
+  + 不过 Rust 仍然保留了后路：
+    ```rust
+    #[derive(Debug)]
+    struct Rectangle {
+      width: u32,
+      height: u32,
+    }
+
+    fn main() {
+      let rect1 = Rectangle {
+        width: 30,
+        height: 50,
+      };
+
+      println!("rect1 is {:?}", rect1);
+    }
+    ```
+    当结构体较大时，我们可能希望能够有更好的输出表现，此时可以使用 `{:#?}`（进行每个部分换行） 来替代 `{:?}`
+  + 使用`dbg!宏`来输出`debug`信息：
+    + 它会拿走表达式的所有权，然后打印出相应的文件名、行号等 debug 信息，当然还有需要的表达式求值结果
+    + 除此之外，它还会把表达式值的所有权返回
+      ```rust
+      #[derive(Debug)]
+      struct Rectangle {
+        width: u32,
+        height: u32,
+      }
+
+      fn main() {
+        let scale = 2;
+        let rect1 = Rectangle {
+          width: dbg!(30 * scale),
+          height: 50,
+        };
+
+        dbg!(&rect1);
+      }
+      ```
+      输出以下结果：
+      ```sh
+      $ cargo run
+      [src/main.rs:10] 30 * scale = 60
+      [src/main.rs:14] &rect1 = Rectangle {
+        width: 60,
+        height: 50,
+      }
+      ```
+<br>
+
+###### 枚举
++ 枚举(enum 或 enumeration)：允许你通过列举可能的成员来定义一个**枚举类型**，例如扑克牌花色：
+  ```rust
+  enum PokerSuit {
+    Clubs,
+    Spades,
+    Diamonds,
+    Hearts,
+  }
+  ```
+  + 枚举类型：这个类型包含了所有可能的枚举成员，而枚举值是该类型中的具体某个成员的实例
+  
