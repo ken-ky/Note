@@ -968,3 +968,562 @@
     如果使用`None`而不是`Some`，需要显式表示`Some`表示的成员值类型；这有一个显著优势：
     + 由于`Option<T>`与`T`是不同类型，因此两者无法直接进行相互操作
     + 也就是说，想要前者与`T`类型进行运算，必须进行类型转换
+<br>
+
+###### 数组
++ 初印象
+  + 在 Rust 中，最常用的数组有两种：
+    + 第一种是速度很快但是长度固定的`array`（存储在栈上）
+    + 第二种可动态增长但是又性能损耗的`Vector`（存储在堆上）
+  + 本节中，重点放在`array`，数组的三要素：
+    + 长度固定
+    + 元素必须有相同类型
+    + 依次线性排列
++ 创建数组（数组元素类型要统一，长度固定）
+  + 创建：
+    可以直接进行创建
+    ```rust
+    let a = [1, 2, 3, 4, 5];
+    ```
+    可以声明类型
+    ```rust
+    let a: [i32, 5] = [1, 2, 3, 4, 5];
+    ```
+    初始化一个**重复N次值的数组**
+    ```rust
+    let a = [3; 5]; // 前者为值，后者为数量
+    ```
+    也可创建多维数组
+    ```rust
+    let one = [1, 2, 3];
+    let two: [u8; 3] = [1, 2, 3];
+    let blank1 = [0; 3];
+    let blank2: [u8; 3] = [0; 3];
+    let arr: [[u8; 3]; 4] = [one, two, blank1, blan2];
+    ```
+  + 访问数组元素
+    + 如同许多语言一样，可以使用索引访问，如`arr[0]`
+    + 越界访问：当尝试使用索引访问元素时，Rust 将检查指定的索引是否小于数组长度（检查只能在运行时进行）
+      + 可以使用`.get(<index>)`来获得`Option<T>`类型的对应值，就不会发生越界，之后再进行`.unwrap()`获得对应值
+      + 而直接使用索引就会有越界风险
+  + 数组元素为非基础类型：
+    + 一个错误例子：这样的代码会发生报错，原因在于进行多次同值初始化时使用的是`Copy`，而复杂类型无法通过浅拷贝完成（期间可能发生所有权移交）
+      ```rust
+      let array = [String::from("rust is good!"); 8];
+      println!("{:#?}", array);
+      ```
+    + 正确的简明写法：调用`std::array::from_fn`
+      ```rust
+      let array: [String; 8] = std::array::from_fn(|_i| String::from("rust is good!"));
+      println!("{:#?}", array);
+      ```
++ 数组切片：`T`数组切片的类型通常是`&[T]`，主要包含以下特点
+  + 切片的长度可以与数组不同，并不固定
+  + 创建切片的代价非常小，只是针对底层数组的一个引用
+  + 切片类型`[T]`拥有不固定大小，而切片引用类型`&[T]`则具有固定大小
++ 总结：综合性数组例子
+  ```rust
+  fn main() {
+    // 编译器自动推导出one的类型
+    let one             = [1, 2, 3];
+    // 显式类型标注
+    let two: [u8; 3]    = [1, 2, 3];
+    let blank1          = [0; 3];
+    let blank2: [u8; 3] = [0; 3];
+
+    // arrays是一个二维数组，其中每一个元素都是一个数组，元素类型是[u8; 3]
+    let arrays: [[u8; 3]; 4]  = [one, two, blank1, blank2];
+
+    // 借用arrays的元素用作循环中
+    for a in &arrays {
+      print!("{:?}: ", a);
+      // 将a变成一个迭代器，用于循环
+      // 你也可以直接用for n in a {}来进行循环
+      for n in a.iter() {
+        print!("\t{} + 10 = {}", n, n+10);
+      }
+
+      let mut sum = 0;
+      // 0..a.len,是一个 Rust 的语法糖，其实就等于一个数组，元素是从0,1,2一直增加到到a.len-1
+      for i in 0..a.len() {
+        sum += a[i];
+      }
+      println!("\t({:?} = {})", a, sum);
+    }
+  }
+  ```
+  几个需要注意的点：
+  + **数组类型与数组切片**不同：`[T;n]`是数组类型，而`[T]`是数组切片类型，后者长度无法在编译期得知，就不能用`[T;n]`描述
+    + 这也就意味着以下代码会出错：
+      ```rust
+      fn create_arr(n: i32) {
+        let arr = [1; n];
+      }
+      ```
+  + 数组长度也是类型一部分，所以`[T;3]`与`[T;4]`不是同一类型
+  + 实际开发过程中，使用最多的是数组切片`[T]`
+<br>
+
+##### 流程控制
+~`Rust`程序是从上至下执行的，可以通过循环、分支等流程控制方式，更好实现相应功能~
+<br>
+
+###### if 分支控制
++ `if-else`**表达式**（会返回值）根据条件执行不同的代码分支
+  ```rust
+  fn main() {
+    let condition = true;
+    let number = if condition {
+      5
+    } else {
+      6
+    };
+
+    println!("The value of number is: {}", number);
+  }
+  ```
+  这一代码体现了以下几点：
+  + `if`语句块是表达式
+  + 使用`if`来赋值时最好保证每个分支返回的类型一致，可以不一致，例如：
+    ```rust
+    let mut v = 0;
+    for i in 1..10 {
+      v = if i == 9 {
+        continue  // 返回了continue
+      } else {
+        i
+      }
+    }
+    println!("{}", v);
+    ```
++ 可以将`else if`与`if-else`组合，形成更复杂的条件分支语句（类似其他语言）
+  + 类似地，条件分支匹配的语句块是首个成功的分支
+  + 一旦条件判断成功，执行相应语句块后会直接跳出`if`语句块
+  + 大量`else if`之后可以使用`match`（模式匹配）解决冗杂的表现
+<br>
+
+##### 循环控制
++ 在 Rust 中有三种循环方式：`for`、`while`和`loop`，其中的`for`是 Rust 循环王冠上的明珠
+<br>
+
+###### for 循环
++ `for`循环中的一些常见模式：
+  + 一个循环序列的输出：
+    ```rust
+    for i in 1..=5 {  // 将i替换为_便可以达成单纯循环5次，注意1..5只是循环4次
+      print!("{} ", i);
+    }
+    ```
+  + `for`与集合的联动：这里的集合指的是`Vec`、`HashMap`等等这样的复合类型
+    ```rust
+    for <元素> in <集合> {
+      ...
+    }
+    ```
+    需要注意，假如说仍然想在`for`代码块之后继续使用此集合，否则该集合的所有权会在`for`内发生转移（这时其实发生了`Copy`，但是集合不具备这一属性），之后便无法使用了
+    ```rust
+    for item in &container {
+      ...
+    }
+    ```
+    如果想在循环中修改集合中的元素，使用`mut`：
+    ```rust
+    for item in &mut container {
+      ...
+    }
+    ```
+    之前的代码中实际上都发生了集合到集合迭代器的隐式转换，下一代码块中既遍历了集合内元素，也给出了索引：
+    ```rust
+    fn main() {
+      let a = [4, 3, 2, 1];
+      for (i, v) in a.iter().enumerate() {
+        println!("第{}个元素是{}", i + 1, v);
+      }
+    }
+    ```
+<br>
+
+###### 一些参与循环控制的关键字
++ `continue`：没啥好说的，跳过这一次循环
++ `break`：没啥好说的，跳出当前的循环体
+  + 不过，这个`break`是可以附带一个表达式的（作为返回值）`break <exp>;`
+<br>
+
+###### while 循环
++ 基本用法类似其它语言：
+  ```rust
+  let mut n = 0;
+  
+  while n <= 5 {
+    n = n + 1;
+  }
+  ```
+<br>
+
+###### loop 循环
++ 相当于一个无限循环，允许带值返回，因此`break`便成为了`loop`的最佳拍档
+  ```rust
+  fn main() {
+    let mut counter = 0;
+
+    let result = loop {
+      counter += 1;
+
+      if counter == 10 {
+        break counter * 2;
+      }
+    };
+
+    println!("The result is {}", result);
+  }
+  ```
++ 当有多层循环时，你可以使用`continue`或`break`来控制外层的循环。要实现这一点，外部的循环必须拥有一个标签`'label`, 然后在`break`或`continue`时指定该标签
+  ```rust
+  fn main() {
+    let mut count = 0;
+    'outer: loop {
+      'inner1: loop {
+        if count >= 20 {
+          // 这只会跳出 inner1 循环
+          break 'inner1; // 这里使用 `break` 也是一样的
+        }
+        count += 2;
+      }
+
+      count += 5;
+
+      'inner2: loop {
+        if count >= 30 {
+          break 'outer;
+        }
+
+        continue 'outer;
+      }
+    }
+
+    assert!(count == 30)
+  }
+  ```
+<br>
+
+##### 模式匹配
+###### `match` 和 `if let`
++ 在 Rust 中，模式匹配最常用的就是`match`和`if let`
+  + 一个关于`match`的简单例子：
+    ```rust
+    enum Direction {
+      East,
+      West,
+      North,
+      South,
+    }
+    
+    fn main() {
+      let dire = Direction::South;
+      match dire {
+        Direction::East => println!("East"),
+        Direction::North | Direction::South => {
+          println!("South or North");
+        };
+        _ => println!("West");
+      };
+    }
+    ```
+    这里去匹配`dire`对应的枚举类型，因此`match`中的匹配分支必须完全覆盖枚举变量中的所有成员类型，有以下几点值得注意：
+    + `match`匹配必须要穷举出所有可能，`_`代表未列出的所有可能性
+    + `match`的每一个分支必须是一个表达式，且分支表达式最终返回值类型必须相同
+    + `X | Y`：表示两个逻辑表达式的运算，也可以使用`&`
++ `match`匹配：
+  + 首先是`match`通用形式：
+    ```rust
+    match target {
+      模式1 => 表达式1,
+      模式2 => {
+        语句1;
+        语句2;
+        表达式2
+      },
+      _ => 表达式3
+    }
+    ```
+    相较于`if`之后只能跟布尔表达式，而`match`后的表达式返回值可以是任意类型
+  + 使用`match`表达式赋值：由于`match`本身也是一个表达式，因此可以用它来赋值
+    ```rust
+    enum IpAddr {
+      Ipv4,
+      Ipv6
+    }
+    
+    fn main() {
+      let ip1 = IpAddr::Ipv6;
+      let ip_str = match ip1 {
+        IpAddr::Ipv4 => "127.0.0.1",
+        _ => "::1",
+      };
+      
+      println!("{}", ip_str);
+    }
+    ```
+  + 模式绑定：模式匹配的另一重要功能是从模式中取出绑定的值
+    ```rust
+    #[derive(Debug)]
+    enum UsState {
+      Alabama,
+      Alaska,
+      // --snip--
+    }
+
+    enum Coin {
+      Penny,
+      Nickel,
+      Dime,
+      Quarter(UsState), // 25美分硬币
+    }
+    ```
+    接下来可以借助模式绑定得到`state`
+    ```rust
+    fn value_in_cents(coin: Coin) -> u8 {
+      match coin {
+        Coin::Penny => 1,
+        Coin::Nickel => 5,
+        Coin::Dime => 10,
+        Coin::Quarter(state) => {
+          println!("State quarter from {:?}!", state);
+          25
+        },
+      }
+    }
+    ```
+    假如有一个印了阿拉斯加州标记的 25 分硬币：`Coin::Quarter(UsState::Alaska)`，在匹配时，`state`变量将绑定`UsState::Alaska`的枚举值
+    再来个复杂的例子：
+    ```rust
+    enum Action {
+      Say(String),
+      MoveTo(i32, i32),
+      ChangeColorRGB(u16, u16, u16),
+    }
+
+    fn main() {
+      let actions = [
+        Action::Say("Hello Rust".to_string()),
+        Action::MoveTo(1,2),
+        Action::ChangeColorRGB(255,255,0),
+      ];
+      for action in actions {
+        match action {
+          Action::Say(s) => {
+            println!("{}", s);
+          },
+          Action::MoveTo(x, y) => {
+            println!("point from (0, 0) move to ({}, {})", x, y);
+          },
+          Action::ChangeColorRGB(r, g, _) => {
+            println!("change color into '(r:{}, g:{}, b:0)', 'b' has been ignored",
+              r, g,
+            );
+          }
+        }
+      }
+    }
+    ```
++ 穷尽匹配：`match`的匹配必须穷尽所有情况，否则会发生报错
++ `_`通配符：这个内容在之前的代码也有迹可循，相当于其它语言的`default`关键字，可以匹配所有遗漏值
+  + 当然除了`_`通配符，也可以直接使用一个变量（其实感觉上更像别名）
+    ```rust
+    #[derive(Debug)]
+    enum Direction {
+      East,
+      West,
+      North,
+      South,
+    }
+
+    fn main() {
+      let dire = Direction::South;
+      match dire {
+        Direction::East => println!("East"),
+        other => println!("other direction: {:?}", other),
+      };
+    }
+    ```
+    然而，在某些场景中，其实只关心**某一个值是否存在**，`match`就会显得过于繁琐
++ `if let`匹配：有时会遇到只有一个模式的值需要被处理，在`match`中便会如此
+  ```rust
+  let v = Some(3u8);
+  match v {
+    Some(3) => println!("three"),
+    _ => (),
+  }
+  ```
+  像是只处理`Some(3)`，而不处理其它`Some<u8>`或者`None`，可以使用`if let`的方式来实现：
+  ```rust
+  if let Some(3) = v {  // 专门匹配 Some(3)
+    println!("three");
+  }
+  ```
++ `matches!`宏：这个宏可以将一个表达式与模式进行匹配，然后返回匹配的结果`true`或者`false`
+  + 一个例子：有一个动态数组，存在以下枚举
+    ```rust
+    enum MyEnum {
+      Foo,
+      Bar
+    }
+    
+    fn main() {
+      let v = vec![MyEnum::Foo, MyEnum::Bar, MyEnum::Foo];
+    }
+    ```
+    现在需要对`v`进行过滤，只保留类型`MyEnum::Foo`的元素
+    ```rust
+    v.iter().filter(|x| matches!(x, MyEnum::Foo));
+    ```
+    不能使用`x == MyEnum::Foo`，因为迭代器变量无法与一个枚举变量直接比较
+    还有更多使用的例子：
+    ```rust
+    let foo = 'f';
+    assert!(matches!(foo, 'A'..='Z' | 'a'..='z'));
+    
+    let bar = Some(4);
+    assert!(matchers!(bar, Some(x) if x > 2));
+    ```
++ 变量遮蔽：上述的两种方法中均隐式声明了新的变量（在代码块中），这就意味着会发生变量遮蔽
+  ```rust
+  fn main() {
+    let age = Some(30);
+    if let Some(age) = age {  // 这里的新变量age被遮蔽为了30
+      println!("匹配出的年龄为 {}", age);
+    }
+    // 这里的age仍然是Some(i32)类型，因为超出了age:i32的遮蔽范围
+  }
+  ```
+  同样，在`match`中也是如此
+  ```rust
+  fn main() {
+    let age = Some(30);
+    println!("在匹配前，age是{:?}",age);
+    match age {
+      Some(age) =>  println!("匹配出来的age是{}",age),  // 匹配到i32的age
+      _ => ()
+    }
+    println!("在匹配后，age是{:?}",age);
+  }
+  ```
+<br>
+
+###### 解构 Option
+~别忘了`Some(T)`与`None`都是`Option<T>`中的成员~
++ 一个例子：
+  ```rust
+  fn plus_one(x: Option<i32>) -> Option<i32> {
+    match x {
+      None => None,
+      Some(i) => Some(i + 1),
+    }
+  }
+  ```
+  有几个值得注意的地方：
+  + 隐式绑定`i32`
+  + 通常的`T`都会对应一个`None`
+<br>
+
+###### 模式适用场景
++ 模式：这是 Rust 中的特殊语法，它用来匹配类型中的结构和数据，它往往和`match`表达式联用，以实现强大的模式匹配能力。一般由以下内容组合而成：
+  + 字面值
+  + 解构的数组、枚举、结构体或者元组
+  + 变量
+  + 通配符
+  + 占位符
++ **所有可能用到模式的地方**
+  + `match`分支：每个分支就是一个**模式**
+    ```rust
+    match VALUE {
+      PATERN => EXPRESSION,
+      PATERN => EXPRESSION,
+      _ => EXPRESSION,
+    }
+    ```
+  + `if let`：往往用于匹配一个模式，而忽略剩下的所有模式的场景：
+    ```rust
+    if let PATERN = SOME_VALUE {
+      ...
+    }
+    ```
+  + `while let`条件循环：只要模式匹配就一直进行`while`循环
+    ```rust
+    let mut st = Vec::new();
+    
+    for i in 1..4 {
+      st.push(i);
+    }
+    
+    while let Some(top) = st.pop() {  // 只要栈顶不为 None 就继续弹出
+      println!("{}", top);
+    }
+    ```
+  + `for`循环：下述的`.enumerate()`按照`(<index>, <value>)`来进行遍历
+    ```rust
+    let v = vec!['a', 'b', 'c'];
+    
+    for (i, val) in v.iter().enumerate() {
+      println!("{} is at index {}", val, i);
+    }
+    ```
+  + `let`语句：实际上`let x = 5;`也是一种模式匹配，内容就是**将匹配的值绑定到变量x上**。所以，在 Rust 中，变量名也是一种模式
+    + 因此模式匹配要求两边的类型必须相同，否则就会报错：
+      ```rust
+      let (x, y) = (1, 2, 3); // 双边不匹配，会报错
+      ```
+  + 函数参数：实际上也是模式匹配的一种，你还可以在参数中匹配元组：
+    ```rust
+    fn print_coordinates(&(x, y): &(i32, i32)) {
+      println!("Current location: ({}, {})", x, y);
+    }
+
+    fn main() {
+      let point = (3, 5);
+      print_coordinates(&point);
+    }
+    ```
+    `&(3, 5)`会匹配模式`&(x, y)`，
+  + 再看`let`与`if let`：上文说到`let`实际上也是一种模式匹配，但是面临以下语句存在不足
+    ```rust
+    let Some(x) = some_option_value;
+    ```
+    原因在于右部可能为`None`，而这与`let, for, match`要求全覆盖的原则不符，于是聪明人们就采用`if`来消除这个错误，避免了`None`
+    ```rust
+    if let Some(x) = some_option_value {
+      println!("{}", x);
+    }
+    ```
+    由此达到单模式匹配的效果，之后`let-else`使得原本赋值变为双分支，不过`else`分支必须是发散代码块
+    ```rust
+    use std::str::FromStr;
+
+    fn get_count_item(s: &str) -> (u64, &str) {
+      let mut it = s.split(' ');
+      let (Some(count_str), Some(item)) = (it.next(), it.next()) else {
+        panic!("Can't segment count item pair: '{s}'");
+      };
+      let Ok(count) = u64::from_str(count_str) else {
+        panic!("Can't parse integer: '{count_str}'");
+      };
+      // error: `else` clause of `let...else` does not diverge
+      // let Ok(count) = u64::from_str(count_str) else { 0 };
+      (count, item)
+    }
+
+    fn main() {
+      assert_eq!(get_count_item("3 chairs"), (3, "chairs"));
+    }
+    ```
+    不过`let-else`带来了一种相当作弊的操作，`let`中的变量可以在`if`分支外使用
+    ```rust
+    // if let
+    if let Some(x) = some_option_value {
+      println!("{}", x);
+    }
+
+    // let-else
+    let Some(x) = some_option_value else { return; }
+    println!("{}", x);
+    ```
