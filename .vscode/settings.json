@@ -1,6 +1,9 @@
 {
     "rust-analyzer.linkedProjects": [
         "./rust_note/basis/world_hello/Cargo.toml",
-        "./rust_note/basis/variables/Cargo.toml"
+        "./rust_note/basis/variables/Cargo.toml",
+        "./rust_note/basis/complex-num/Cargo.toml",
+        "./rust_note/basis/test/owner_test/Cargo.toml",
+        "./rust_note/basis/test/simple_list/Cargo.toml"
     ]
 }
