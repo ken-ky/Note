@@ -151,6 +151,103 @@
 ##### 模板类编程
 + 参考：
   + [雾里看花：真正意义上的理解 C++ 模板](https://zhuanlan.zhihu.com/p/655902377)
+<br>
+
+###### Code Gerneration（代码泛型）
++ 泛型 (Generic) 编程，也就是为不同类型编写相同的代码，实现代码复用。在加入模板之前，只能通过宏来模拟泛型。一个例子：
+  ```C
+  #define add(T) _ADD_IMPL_##T  // 设定宏参数以及替换部分
+  
+  #define ADD_IMPL(T)     \     // 设定替换部分的函数体
+    T add(T)(T a, T b) {  \
+      return a + b;       \
+    }
+  
+  // 使用宏定义，以声明两个不同类型的函数
+  ADD_IMPL(int);
+  ADD_IMPL(float);
+  
+  int main() {
+    add(int)(1, 2);
+    add(float)(1.0f, 2.0f);
+  }
+  ```
+  + 原理实际上就是，将普通函数中的类型替换为宏参数`T`，之后使用宏定义替换后，便能声明此类型函数（可以认为是一种**实例化**）
+  + 具体来说，用宏来实现泛型主要有几个缺点：
+    + 代码可读性差，宏的拼接和代码逻辑耦合，不容易阅读报错信息
+    + 难以调试，断点只能设置到宏展开的位置，而不是宏定义内部
+    + 需要显式写出类型参数，参数较多时，会显得十分冗长
+    + 必须手动声明实例化的函数定义，
+  + 这些内容都被模板解决了
+  ```C++
+  template<typename T>
+  T add(T a, T b) {
+    return a + b;
+  }
+  
+  template int add<>(int, int); // 显式实例化（可选）
+  
+  int main() {
+    add(1, 2);        // 自动检测类型
+    add(1.0f, 2.0f);  // 隐式实例化
+    add<float>(1, 2); // 显式指定 T
+  }
+  ```
+  + 模板的优点在于：
+    + 模板就是占位符，无需字符拼接，与普通代码别无二致
+    + 报错和调试信息都会直接指向模板定义位置，而不是模板实例化的位置
+    + 支持模板参数自动推导，不需要显式写出类型参数，不过也支持显式指定类型参数
+    + 支持**隐式实例化 (implicit instantiation)**【编译器自动实例化使用到的函数】，同时也支持**显式实例化 (explicit instantiation)**【手动实例化】
+  + 除此之外，还有诸如**偏特化 (partial specialization)**、**全特化 (full specialization)**、**可变模板参数 (variadic template)**、**变量模板 (variable template)** 等等一系列特性，这些仅凭宏都是做不到的。正是由于模板的出现，才使用 STL 这样的泛型库的实现成为可能
++ `Table Gen`：上面的泛型，可以看作模板最直接的用法，基于它们乐意有一些更高级的代码生成：
+  > 例如：在编译期生成一个确定的表以供运行期查询。标准库中`std::visit`的实现就利用了这种技巧，下面是一个简单的模拟：
+  ```C++
+  template<typename T, typename Variant, typename Callback>
+  void wrapper(Variant& variant, Callback& callback) {
+    callback(std::get<T>(variant));
+    // 安全地自variant获取T类型的值，并调用callback()函数
+  }
+  
+  template<typename... Ts, typename Callback>
+  void visit(std::variant<Ts...>& variant, Callback&& callback) {
+    using Variant = std::variant<Ts...>;  // 使用对应Ts...集合对应的类型
+    constexpr static std::array table = { &wrapper<Ts, Variant, Callback>... }; // 转换为函数指针数组
+    table[Variant.index()](variant, callback);  // 通过迭代器匿名运行对应类型函数
+  }
+  
+  int main() {
+    auto callback = [](auto& value) { std::cout << value << std::endl; };
+    
+    std::variant<int, float, std::string> variant = 42;
+    visit(variant, callback);
+    
+    variant = 3.14f;
+    visit(variant, callback);
+    
+    variant = "Hello, world!";
+    visit(variant, callback);
+    
+    return 0;
+  }
+  ```
+  + 尽管`variant`中储存的元素类型在运行时才能确定，不过可能取值的类型集合在编译期便可以确定，所以用`callback`给集合中每一个可能的类型都实例化一个对应的`wrapper`函数，并且存到一个数组里面。在运行时直接用`variant`的`index`访问数组里面对应的成员即可完成调用
+  + 使用 C++17 加入的**折叠表达式 (folding expression)**，另一种实现：
+  ```C++
+  template<typename... Ts, typename Callback>
+  void visit(std::variant<Ts...>& variant, Callback&& callback) {
+    auto foreach = []<typename T>(std::variant<Ts...>& variant, Callback& callback) {
+      if(auto value = std::get_if<T>(&variant)) {
+        callback(*value);
+        return true;
+      }
+      return false;
+    };
+    (foreach.template operator()<Ts>(variant, callback) || ...);
+  }
+  ```
+<br>
+
+###### 备忘
 + 结构外成员函数示例：
   ```cpp
   template<typename T> struct Exam {
