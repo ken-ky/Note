@@ -4,6 +4,7 @@
         "./rust_note/basis/variables/Cargo.toml",
         "./rust_note/basis/complex-num/Cargo.toml",
         "./rust_note/basis/test/owner_test/Cargo.toml",
-        "./rust_note/basis/test/simple_list/Cargo.toml"
+        "./rust_note/basis/test/simple_list/Cargo.toml",
+        "./rust_note/basis/test/method_test/Cargo.toml"
     ]
 }

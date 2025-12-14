@@ -1232,7 +1232,7 @@
     这里去匹配`dire`对应的枚举类型，因此`match`中的匹配分支必须完全覆盖枚举变量中的所有成员类型，有以下几点值得注意：
     + `match`匹配必须要穷举出所有可能，`_`代表未列出的所有可能性
     + `match`的每一个分支必须是一个表达式，且分支表达式最终返回值类型必须相同
-    + `X | Y`：表示两个逻辑表达式的运算，也可以使用`&`
+    + `X | Y`：表示两个逻辑表达式的运算
 + `match`匹配：
   + 首先是`match`通用形式：
     ```rust
@@ -1527,3 +1527,503 @@
     let Some(x) = some_option_value else { return; }
     println!("{}", x);
     ```
+<br>
+
+###### 全模式列表
++ 匹配字面值：
+  ```rust
+  let x = 1;
+  
+  match x {
+    1 => println!("one"),
+    2 => println!("two"),
+    _ => println!("anything"),
+  }
+  ```
++ 匹配命名变量：
+  ```rust
+  fn main() {
+    let x = Some(5);
+    let y = 10;
+    
+    match x {
+      Some(50) => println!("Got 50"),
+      Some(y) => println!("Matched, y = {:?}", y),  // 匹配出5
+      _ => println!("Default case, x = {:?}", x),
+    }
+    
+    println!("at the end: x = {:?}, y = {:?}", x, y);
+  }
+  ```
+  + 这一过程中发生了变量遮蔽
+  + 如果不想引入变量遮蔽，可以使用另一变量名而非`y`，或者使用匹配守卫(`match guard`)
++ 单分支多模式：可以使用`|`在一个分支前匹配多个模式
++ 通过序列`..=`匹配值的范围：该语法不仅可以用于循环，还能用于匹配模式
+  ```rust
+  let x = 5;
+  
+  match x {
+    1..=5 => println!("one through five"),
+    _ => println!("something else"),
+  }
+  ```
+  类似，`'a'..='z'`也是正确的模式
++ 解构并分解值：可以使用模式解构结构体、枚举、元组、数组和引用
+  + 解构结构体：
+    ```rust
+    struct Point {
+      x: i32,
+      y: i32,
+    }
+    
+    fn main() {
+      let p = Point { x: 0, y: 7 };
+      
+      let Point { x: a, y: b } = p;
+      assert_eq!(0, a);
+      assert_eq!(7, b);
+    }
+    ```
+    这个例子展示了**模式中的变量名不必与结构体中的字段名一致**。不过当两者一致时，也可如此进行模式匹配：
+    ```rust
+    fn main() {
+      let p = Point { x: 0, y: 7 };
+      
+      let Point { x, y } = p;
+      assert_eq!(0, x);
+      assert_eq!(7, y);
+    }
+    ```
+    另外，也就可以使用字面值作为结构体模式的一部分进行解构，而不是为所有字段创建变量：
+    ```rust
+    fn main() {
+      let p = Point { x: 0, y: 7 }; // 匹配第二个分支
+
+      match p {
+        Point { x, y: 0 } => println!("On the x axis at {}", x),  // 只匹配 y=0 的目标
+        Point { x: 0, y } => println!("On the y axis at {}", y),  // 只匹配 x=0 的目标
+        Point { x, y } => println!("On neither axis: ({}, {})", x, y),
+      }
+    }
+    ```
+  + 解构枚举：
+    ```rust
+    enum Message {
+      Quit,
+      Move { x: i32, y: i32 },
+      Write(String),
+      ChangeColor(i32, i32, i32),
+    }
+
+    fn main() {
+      let msg = Message::ChangeColor(0, 160, 255);
+
+      match msg {
+        Message::Quit => {
+          println!("The Quit variant has no data to destructure.")
+        }
+        Message::Move { x, y } => {
+          println!(
+            "Move in the x direction {} and in the y direction {}",
+            x,
+            y
+          );
+        }
+        Message::Write(text) => println!("Text message: {}", text),
+        Message::ChangeColor(r, g, b) => {
+          println!(
+            "Change the color to red {}, green {}, and blue {}",
+            r,
+            g,
+            b
+          )
+        }
+      }
+    }
+    ```
+    模式匹配也需要类型相同；另外没有任何数据的枚举成员，不能进一步解构其值，只能匹配其字面值
+  + 解构嵌套的结构体和枚举：`match`也可以匹配嵌套的项
+    ```rust
+    enum Color {
+      Rgb(i32, i32, i32),
+      Hsv(i32, i32, i32),
+    }
+
+    enum Message {
+      Quit,
+      Move { x: i32, y: i32 },
+      Write(String),
+      ChangeColor(Color),
+    }
+
+    fn main() {
+      let msg = Message::ChangeColor(Color::Hsv(0, 160, 255));
+
+      match msg {
+        Message::ChangeColor(Color::Rgb(r, g, b)) => {
+          println!(
+            "Change the color to red {}, green {}, and blue {}",
+            r,
+            g,
+            b
+          )
+        }
+        Message::ChangeColor(Color::Hsv(h, s, v)) => {
+          println!(
+            "Change the color to hue {}, saturation {}, and value {}",
+            h,
+            s,
+            v
+          )
+        }
+        _ => ()
+      }
+    }
+    ```
+  + 解构结构体与元组：
+    ```rust
+    struct Point {
+      x: i32,
+      y: i32,
+    }
+
+    let ((feet, inches), Point {x, y}) = ((3, 10), Point { x: 3, y: -10 });
+    ```
+  + 解构数组：对于数组可以使用类似元组方式解构
+    + 定长数组
+      ```rust
+      let arr: [u16; 2] = [114, 514];
+      let [x, y] = arr;
+      
+      assert_eq!(x, 114);
+      assert_eq!(y, 514);
+      ```
+    + 不定长数组
+      ```rust
+      let arr: &[u16] = &[114, 514];
+
+      if let [x, ..] = arr {
+        assert_eq!(x, &114);
+      }
+
+      if let &[.., y] = arr {
+        assert_eq!(y, 514);
+      }
+
+      let arr: &[u16] = &[];
+
+      assert!(matches!(arr, [..]));
+      assert!(!matches!(arr, [x, ..]));
+      ```
+  + 解构引用：使用模式 `&mut V` 去匹配一个可变引用时，你需要格外小心，因为匹配出来的 `V` 是一个值，而不是可变引用
+    ```rust
+    fn main() {
+      let mut v = String::from("hello,");
+      let r = &mut v;
+
+      match r {
+        value => value.push_str(" world!") 
+      }
+    }
+    ```
++ 忽略模式中的值：
+  + 使用`_`忽略整个值
+  + 使用嵌套的`_`忽略部分值：
+    ```rust
+    let mut setting_value = Some(5);
+    let new_setting_value = Some(10);
+
+    match (setting_value, new_setting_value) {
+      (Some(_), Some(_)) => {
+        println!("Can't overwrite an existing customized value");
+      }
+      _ => {
+        setting_value = new_setting_value;
+      }
+    }
+
+    println!("setting is {:?}", setting_value);
+    ```
+    还可以在一个模式中的多处使用下划线来忽略特定值：
+    ```rust
+    let numbers = (2, 4, 8, 16, 32);
+
+    match numbers {
+      (first, _, third, _, fifth) => {
+        println!("Some numbers: {}, {}, {}", first, third, fifth)
+      },
+    }
+    ```
+  + 使用下划线开头忽略未使用的变量（仍会绑定到变量，而`_`完全不会绑定）
+  + 用`..`忽略剩余值：必须要求匹配值是无歧义的
+    ```rust
+    fn main() {
+      let numbers = (2, 4, 8, 16, 32);
+
+      match numbers {
+        (.., second, ..) => {   // 会直接报错，因为 second 匹配会有歧义
+          println!("Some numbers: {}", second)
+        },
+      }
+    }
+    ```
++ 匹配守卫提供的额外条件
+  + 匹配守卫：一个位于`match`分支模式后的额外`if`条件，当`if`不成立时，会前往第二分支
+    + 一个例子：
+      ```rust
+      let x = 4;
+      let y = false;
+      
+      match x {
+        4 | 5 | 6 if y => println!("yes"),
+        _ => println!("no"),
+      }
+      ```
+      第一分支的条件为`(4 | 5 | 6) if y => ...`
++ @ 绑定：
+  + `@`允许为一个字段绑定另外一个变量
+    ```rust
+    enum Message {
+      Hello { id: i32 },
+    }
+
+    let msg = Message::Hello { id: 5 };
+
+    match msg {
+      Message::Hello { id: id_variable @ 3..=7 } => {
+        println!("Found an id in range: {}", id_variable) // 将 id 绑定至 id_variable，并判断是否位于 3..=7 内
+      },
+      Message::Hello { id: 10..=12 } => { // 只能限定 id 范围，而无法使用分支变量
+        //println!("{}", id); // 这里会直接报错，因为作用域内没有 id
+        println!("Found an id in another range")
+      },
+      Message::Hello { id } => {
+        println!("Found some other id: {}", id)
+      },
+    }
+    ```
+  + `@`前方绑定，后方解构(Rust 1.56 新增)：`@`可以在绑定新变量同时，对目标进行解构
+    ```rust
+    #[derive(Debug)]
+    struct Point {
+      x: i32,
+      y: i32,
+    }
+
+    fn main() {
+      // 绑定新变量 `p`，同时对 `Point` 进行解构
+      let p @ Point {x: px, y: py } = Point {x: 10, y: 23};
+      println!("x: {}, y: {}", px, py);
+      println!("{:?}", p);
+
+
+      let point = Point {x: 10, y: 5};
+      if let p @ Point {x: 10, y} = point { // p 绑定 point 后，解构判断 x 是否为10
+        println!("x is 10 and y is {} in {:?}", y, p);
+      } else {
+        println!("x was not 10 :(");
+      }
+    }
+    ```
+  + `@`新特性(Rust 1.53 新增)：【真的神人语法】
+    ```rust
+    fn main() {
+      match 1 {
+        num @ 1 | 2 => {  // 这种模式条件等同为 num @ (1 | 2)，之前 Rust 版本会发生报错
+            println!("{}", num);
+        }
+        _ => {}
+      }
+    }
+    ```
+<br>
+
+##### 方法 Method
+###### 定义方法
++ Rust 使用`impl`来定义方法，例如：
+  ```rust
+  struct Circle {
+    x: f64,
+    y: f64,
+    radius: f64,
+  }
+  
+  impl Circle { // 专门定义 Circle 方法
+    // new 是 Circle 的关联函数，因为它的第一个参数不是self，且new不是关键字
+    // 这种方法往往用于初始化当前结构体的实例
+    fn new(x: f64, y: f64, radius: f64) -> Circle {
+      Circle {
+        x,
+        y,
+        radius,
+      }
+    }
+    
+    // Circle 的方法，&self 表示借用当前的 Circle 结构体
+    fn area(&self) -> f64 {
+      std::f64::consts::PI * (self.radius * self.radius)
+    }
+  }
+  
+  fn main() {
+    let cir1 = Circle { x: 3.0, y: 4.0, radius: 5.0 };
+    
+    println!(
+      "The area of the circle is {} square pixels.",
+      cir1.area()
+    );
+  }
+  ```
++ `self`、`&self`和`&mut self`：
+  + 在`area`的签名中，使用`&self`替代了`circle: &Circle`，`&self`其实是`self: &Self`的简写
+    + 在一个`impl`块内，`Self`指代被实现方法的结构体类型，`self`指代此类型实例
+    + 这里还可以注意到参数中的`self`相关内容通常没有类型值，实际上`&self`是 `self: &Self`的缩写或者说语法糖
+  + `self`依然有所有权的概念：
+    + `self`表示`Circle`的所有权转移到该方法中，这种形式用的比较少
+      + 这种使用方式往往用于把当前的对象转成另外一个对象时使用
+    + `&self`表示该方法对`Circle`的不可变借用
+    + `&mut self`表示可变借用
+  + 使用方法代替函数有以下好处：
+    + 不用在函数签名中重复书写`self`对应的类型
+    + 代码的组织性和内聚性更强，对于代码维护和阅读来说，好处巨大
++ 方法名跟结构体字段名相同
+  ```rust
+  impl Circle {
+    fn radius(&self) -> bool {
+      self.radius > 0
+    }
+  }
+  
+  fn main() {
+    let cir1 = Circle {
+      x: 3.0,
+      y: 4.0,
+      radius: 5.0,
+    };
+    
+    if cir1.radius() {
+      println!("The circle has a nonzero radius; it is {}", cir1.radius);
+    }
+  }
+  ```
+  一般来说，方法跟字段同名，往往适用于实现`getter`访问器，例如：
+  ```rust
+  mod my {
+    pub struct Rectangle {
+      width: u32,
+      pub height: u32,  // 公用字段
+    }
+    
+    impl Rectangle {
+      pub fn new(width: u32, height: u32) -> self {
+        Rectangle { width, height }
+      }
+      pub fn width(&self) -> u32 {
+        return self.width;
+      }
+      pub fn height(&self) -> u32 {
+        return self.height;
+      }
+    }
+  }
+  
+  fn main() {
+    let rect1 = my::Rectangle::new(30, 50);
+    
+    println!("{}", rect1.width());  // OK
+    println!("{}", rect1.height()); // OK
+    // println!("{}", rect1.width); // Error，这里的 width 是私有字段
+    println!("{}", rect1.height); //OK
+  }
+  ```
++ `->`运算符问题：
+  + 在 C/C++ 语言中，有两种不同的运算符来调用方法：`.`直接在对象上调用方法，而`->`在一个对象的指针上调用方法，这时需要先解引用指针。【如果`object`是一个指针，那么`object->something()`和`(*object).something()`是一样的】
+  + Rust 中没有一个与`->`等效的运算符；相反，Rust 有一个**自动引用和解引用**的功能。使得这样的代码等价：
+    ```rust
+    p1.distance(&p2);     // 自动添加了`&`符号
+    (&p1).distance(&p2);
+    ```
+    由于`&self`、`&mut self`以及`self`对应了不同所有权的使用等级，因此方法便有了一个明确的接收者，而不存在`引用`与`实例`的争端
+<br>
+
+###### 带有多个参数的方法
++ 方法和函数一样，可以使用多个参数：
+  ```rust
+  impl Rectangle {
+    fn area(&self) -> u32 {
+      self.width * self.height
+    }
+
+    fn can_hold(&self, other: &Rectangle) -> bool {
+      self.width > other.width && self.height > other.height
+    }
+  }
+
+  fn main() {
+    let rect1 = Rectangle { width: 30, height: 50 };
+    let rect2 = Rectangle { width: 10, height: 40 };
+    let rect3 = Rectangle { width: 60, height: 45 };
+
+    println!("Can rect1 hold rect2? {}", rect1.can_hold(&rect2));
+    println!("Can rect1 hold rect3? {}", rect1.can_hold(&rect3));
+  }
+  ```
+<br>
+
+###### 关联函数
++ Rust 中可以通过**关联函数**来定义结构体的构造方法（在`impl`定义且没有`self`的函数）
+  + 由于没有`self`，不能用`obj.something()`的形式调用，也因此它是一个函数而非方法
+  ```rust
+  impl Rectangle {
+    // Rust 习惯使用`new`来作为构造器的名称（出于设计上的考虑，特地没有用`new`作为关键字）
+    fn new(w: u32, h: u32) -> Rectangle {
+      Rectangle { width: w, height: h }
+    }
+  }
+  ```
+  由于是函数，所以不能用`.`来调用，需要用`::`来调用（位于结构体的命名空间中，通过`::`关联函数和模块创建的命名空间）
+<br>
+
+###### 多个`impl`定义
++ Rust 允许为一个结构体定义多个`impl`块（提高了灵活性和代码组织性），相关的方法便可以组织在同一`impl`块中
+  ```rust
+  impl Rectangle {
+    fn area(&self) -> u32 {
+      self.width * self.height
+    }
+  }
+  
+  impl Rectangle {
+    fn can_hold(&self, other: &Rectangle) -> bool {
+      self.width > other.width && self.height > other.height
+    }
+  }
+  ```
+<br>
+
+###### 枚举的方法
++ Rust 中的`enum`比起其它语言的，真的过于强大了，它被允许容纳方法
+  ```rust
+  #![allow(unused)]
+  enum Message {
+    Quit,
+    Move { x: i32, y: i32 },
+    Write(String),
+    ChangeColor(i32, i32, i32),
+  }
+  
+  impl Message {
+    fn call(&self) {
+      // 这里定义方法体
+    }
+  }
+  
+  fn main() {
+    let m = Message::Write(String::from("hello"));
+    m.call();
+  }
+  ```
+<br>
+
+###### 一个结构的示例
++ 文件位于`./Note/rust_note/basis/test/method_test`
