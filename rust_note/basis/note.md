@@ -2027,3 +2027,262 @@
 
 ###### 一个结构的示例
 + 文件位于`./Note/rust_note/basis/test/method_test`
+<br>
+
+##### 泛型和特征
+###### 泛型 Generics
++ 泛型详解：Rust 常使用`T`作为泛型参数（可以自选，名称越短越少）
+  + 使用泛型参数，有一个先决条件，必须声明`<T>`：
+    ```rust
+    fn largest<T>(list: &[T]) -> T { ... }
+    ```
+    + 不过，需要注意一些操作并非所有类型都可以进行（比如说比较、相加等），因此最好添加**类型约束**：使用`std::cmp::PartialOrd`特征 (`Trait`) 对`T`限制，该特征的目的就是让**类型实现可比较的功能**
+    + 同样地，不是所有`T`类型都进行相加操作，所以需要进行限制：
+    ```rust
+    fn add<T: std::ops::Add<Output = T>>(a: T, b: T) -> T {
+      a + b
+    }
+    ```
+  + 显式地指定泛型的类型参数：有时候，编译器无法推断目标的泛型参数
+    ```rust
+    use std::fmt::Display;
+    
+    fn create_and_print<T>() where T: From<i32> + Display {
+      let a: T = 100.into();  // 创建子类型为 T 的变量 a，初值由 100 转换而来
+      println!("a is: {}", a);
+    }
+    
+    fn main() {
+      create_and_print(); // 无法从这里推断 T 的类型
+      create_and_print::<i64>();  // 显式指定类型
+    }
+    ```
+  + 二者混用的例子：
+    ```rust
+    struct A;          // 具体的类型 `A`.
+    struct S(A);       // 具体的类型 `S`.
+    struct SGen<T>(T); // 泛型 `SGen`.
+
+    fn reg_fn(_s: S) {}
+
+    fn gen_spec_t(_s: SGen<A>) {}
+
+    fn gen_spec_i32(_s: SGen<i32>) {}
+
+    fn generic<T>(_s: SGen<T>) {}
+
+    fn main() {
+      // 使用非泛型函数
+      reg_fn(S(A{}));          // 具体的类型
+      gen_spec_t(SGen(A{}));   // 隐式地指定类型参数  `A`.
+      gen_spec_i32(SGen(32)); // 隐式地指定类型参数`i32`.
+
+      // 显式地指定类型参数 `char`
+      generic::<char>(SGen::<char>('a'));
+
+      // 隐式地指定类型参数 `char`.
+      generic(SGen('a'));
+    }
+    ```
++ 结构体中使用泛型：结构体的字段类型也可以用泛型来定义
+  ```rust
+  struct Point<T> {
+    x: T,
+    y: T,
+  }
+  
+  fn main() {
+    let integer = Point { x: 5, y: 10 };
+    let float = Point { x: 1.0, y: 4.0 };
+  }
+  ```
+  这里有两点需要特别注意的：
+  + **提前声明**：提前声明`<T>`
+  + **x 和 y 是相同的类型**，多个类型可以这样`<T,U,X,...>`
++ 枚举中使用泛型：
+  + 一个经典的泛型例子：`Option<T>`就是使用了泛型的`enum`
+    ```rust
+    enum Option<T> {
+      Some(T),
+      None,
+    }
+    ```
+    这一枚举类型关注值的有效性
+  + 另一个重要的泛型例子：`Result<T, E>`
+    ```rust
+    enum Result<T, E> {
+      Ok(T),
+      Err(E),
+    }
+    ```
+    这一枚举类型关注值的正确性。如果函数正常运行，则返回`Ok(T)`类型，否则返回`Err(T)`
++ 方法中使用泛型：
+  + 基本使用：
+    ```rust
+    struct Point<T> {
+      x: T,
+      y: T,
+    }
+    
+    impl<T> Point<T> {
+      fn x(&self) -> &T {
+        &self.x
+      }
+    }
+    
+    fn main() {
+      let p = Point { x: 5, y: 10 };
+      
+      println!("p.x = {}", p.x());
+    }
+    ```
+    注意几点：
+    + `impl<T>`需要提前声明，才能使用在`Point<T>`它
+    + 这里的`Point<T>`整体是一个类型，而非`Point`
+    + 除了`impl<T>`内的泛型外，仍然可以在方法中单独添加额外的泛型（两者不冲突）
+    ```rust
+    struct Point<T, U> {
+      x: T,
+      y: U,
+    }
+
+    impl<T, U> Point<T, U> {
+      // 实现 mixup，不要修改其它代码！
+      fn mixup<V, W>(self, p: Point<V, W>) -> Point<T, W> {
+        Point { x: self.x, y: p.y }
+      }
+    }
+
+    fn main() {
+      let p1 = Point { x: 5, y: 10 };
+      let p2 = Point { x: "Hello", y: '中'};
+
+      let p3 = p1.mixup(p2);
+
+      assert_eq!(p3.x, 5);
+      assert_eq!(p3.y, '中');
+    }
+    ```
+  + 为具体的泛型类型实现方法：对于`Point<T>`类型，不仅能定义基于`T`方法，还能针对特定的具体类型，为方法定义：
+    ```rust
+    impl Point<f32> {
+      fn distance_from_origin(&self) -> f32 {
+        (self.x.powi(2) + self.y.powi(2)).sqrt()
+      }
+    }
+    ```
++ `const`泛型 (Rust 1.51 添加)：之前的泛型中，所有的泛型都是为了抽象不同的类型，而这里便出现了针对值的泛型：
+  + 基本使用：
+    ```rust
+    fn display_array(arr: [i32; 3]) {
+      println!("{:?}", arr);
+    }
+    
+    fn main() {
+      let arr: [i32; 3] = [1, 2, 3];
+      display_array(arr);
+      
+      let arr: [i32; 2] = [1, 2];
+      display_array(arr);
+    }
+    ```
+    上面是一段错误代码，通过以下步骤更正
+    + 首先，改造参数类型，变为数组切片，以此整合不同长度的数组
+    + 之后，变换类型的`i32`，以匹配各种数组元素类型
+    ```rust
+    fn display_array<T: syd::format::Debug>(arr: &[T]) {
+      println!("{:?}", arr);
+    }
+    
+    fn main() {
+      let arr: [i32; 3] = [1, 2, 3];
+      display_array(arr);
+      
+      let arr: [i32; 2] = [1, 2];
+      display_array(arr);
+    }
+    ```
+    不过，这样的改动也只是缓和了`矛盾`，要解决`根本矛盾`，就得匹配数组的长度，这就用到了“针对值的泛型”(`const`)
+    ```rust
+    fn display_array<T: syd::format::Debug, const N: usize>(arr: [T; N]) {
+      println!("{:?}", arr);
+    }
+    
+    fn main() {
+      let arr: [i32; 3] = [1, 2, 3];
+      display_array(arr);
+      
+      let arr: [i32; 2] = [1, 2];
+      display_array(arr);
+    }
+    ```
+  + `const`泛型表达式：假设代码需要在内存较小的平台上工作，因此需要限制函数参数占用的内存大小，此时就可以使用`const`泛型表达式来实现：
+    ```rust
+    // 目前只能在nightly版本下使用
+    #![allow(incomplete_features)]
+    #![feature(generics_const_exprs)]
+    
+    fn something<T>(val: T)  // 下面的`768`就是一个 const 表达式，可供替换
+    where Assert<{ core::mem::size_of::<T>() < 768 }>: IsTrue, {
+      ...
+    }
+    
+    pub enum Assert<const CHECK: bool> {
+      ...
+    }
+    
+    pub trait IsTrue {
+      ...
+    }
+    
+    impl IsTrue for Assert<true> {
+      ...
+    }
+    
+    fn main() {
+      something([0u8; 0]);  // ok
+      something([0u8; 512]);  // ok
+      something([0u8; 1024]); // 编译错误，长度为1024字节，超768字节的参数长度限制
+    }
+    ```
+  + `const fn`：常量函数，允许在编译器对函数进行求值，从而实现更高效、更灵活的代码设计
+    + **现实意义**：
+      + 通常条件下，函数是运行时被调用和执行的。然而，在某些场景中，为了提高运行时的性能或满足某些编译期的约束条件。例如，定义数组长度、计算常量值等
+      + 有了`const fn`，就可以在编译期执行这些函数，从而将计算结果直接嵌入生成的代码中，这不仅提高了运行时的性能，也使代码更加简洁和安全
+    + 基本用法：
+      ```rust
+      const fn add(a: usize, b: usize) -> usize {
+        a + b
+      }
+      
+      const RESULT: usize = add(5, 10);
+      
+      fn main() {
+        println!("The result is {}", RESAULT);
+      }
+      ```
+    + `const fm`的限制：
+      + 虽然`const fn`提供了很多便利，但是由于其在编译期执行，以确保函数能在编译期被安全地求值，因此有一些限制，例如，不可将随机数生成器写成`const fn`
+      + 无论在编译时还是运行时调用`const fn`，它们的结果总是相同，即使多次调用也是如此。唯一的例外是，如果你在极端情况下进行复杂的浮点操作，你可能会得到（非常轻微的）不同结果。因此，不建议使数组长度`(arr.len())`和`Enum`判别式依赖于浮点计算
+    + 结合`const fn`与`const`泛型：二者的结合，可以实现更加灵活和高效的代码设计。例如，创建一个固定大小的缓冲区结构，其中缓冲区大小由编译期计算确定：
+      ```rust
+      struct Buffer<const N: usize> {
+        data: [u8; N],
+      }
+      
+      const fn compute_buffer_size(factor: usize) -> usize {
+        factor * 1024
+      }
+      
+      fn main() {
+        const SIZE: usize = compute_buffer_size(4);
+        let buffer = Buffer::<SIZE> {
+          data:[0; SIZE];
+        };
+        println!("Buffer size: {} bytes", buffer.date.len());
+      }
+      ```
++ 泛型的性能：在 Rust 中泛型是零成本的抽象，意味着你在使用泛型时，完全不用担心性能上的问题
+  + 任何选择都是权衡得失的，既然我们获得了性能上的巨大优势，那么又失去了什么呢？Rust 是在编译期为泛型对应的多个类型，生成各自的代码，因此损失了编译速度和增大了最终生成文件的大小
+  + Rust 通过在编译时进行泛型代码的 **单态化(monomorphization)**来保证效率。单态化是一个通过填充编译时使用的具体类型，**将通用代码转换为特定代码**的过程。
+  + 编译器所做的工作正好与我们创建泛型函数的步骤相反，**编译器寻找所有泛型代码被调用的位置并针对具体类型生成代码**

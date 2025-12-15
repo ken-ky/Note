@@ -143,14 +143,69 @@
     + `constexpr`修饰一个常量表达式【但是`constexpr`不是修饰常量表达式唯一途径】
   + 修饰函数
     + `const`只能用于非静态成员函数而不是所有函数，保证成员函数不修改任何非静态数据
-    + `constexpr`可以用于含参和无参函数。适用于常量表达式，只有在以下情况，编译器才会接受`constexpr`函数：
+    + `constexpr`可以用于含参和无参函数。适用于常量表达式，只有在以下情况，编译器才会接受`constexpr`函数（该函数允许在编译期和运行期调用）：
       + 函数体足够简单，除了`typedef`和静态元素，只允许有`return`语句
       + 参数和返回值必须是字面值类型
+      + 【如果想要某个函数只在编译期执行，可以使用`consteval`标记】
++ [`SFINAE`技术关键字](https://www.luozhiyun.com/archives/744)
+  + **`decltype & std::declval`**：二者都专攻模板类的类型推导
+    + 一个简单的用法：
+      ```c++
+      int i = 4;
+      dectype(i) a; // 推导结果为int，a的类型为int
+      ```
+      `decltype`还有一个返回类型后置语法，可以与`auto`结合起来完成返回值类型推导：
+      ```c++
+      template<typename T, typename U>
+      auto add(T t, U u) -> decltype(t + u) {
+        return t + u;
+      }
+      ```
+      不过，当一个类没有默认构造函数，就无法使用以上方法：
+      ```c++
+      struct A {
+        A() = delete;
+        int foo();
+      };
+      
+      int main() {
+        decltype(A().foo()) foo = 1; // 无法通过编译
+      }
+      ```
+      此时可以使用`std::declval`完成（进行构造）：
+      ```c++
+      #include <utility>
+      
+      struct A {
+        A() = delete;
+        int foo();
+      };
+      
+      int main() {
+        decltype(std::declval<A>().foo()) foo = 1;
+      }
+      ```
+      类模板写法：
+      ```c++
+      template<typename U>
+      auto test() - > decltype(declval<U&>().reserve(), void()) {
+        std::cout << "type " << std::endl;
+      }
+      
+      int main() {
+        test<TestReserve>();
+        return 0;
+      }
+      ```
+      + `declval` 可以在某类型没有默认构造函数的情况下，假想出一个该类的对象来进行类型推导。所以 `declval<U&>().reserve()` 用来测试 `U&` 类型的对象是不是有 `reserve` 成员函数
+      + 需要注意的是 C++ 里的逗号表达式的意思是按顺序逐个估值，并返回最后一项。所以 `decltype` 第二参数表示的是返回值类型为 `void`
 <br>
 
 ##### 模板类编程
 + 参考：
   + [雾里看花：真正意义上的理解 C++ 模板](https://zhuanlan.zhihu.com/p/655902377)
+  + [C++模板进阶指南：SFINAE](https://zhuanlan.zhihu.com/p/21314708)
+  + [C++ 中复杂却很有意思的SFINAE技术](https://www.luozhiyun.com/archives/744)
 <br>
 
 ###### Code Gerneration（代码泛型）
@@ -245,6 +300,52 @@
     (foreach.template operator()<Ts>(variant, callback) || ...);
   }
   ```
+<br>
+
+###### `Type Constraint`（类型约束）
+> 模板的报错信息和宏比起来，难道不是五十步笑百步吗
++ `Function Overload`（函数重载）
+  ```c++
+  struct A {};
+  
+  int main() {
+    std::cout << A{} << std::endl;
+    return 0;
+  }
+  ```
+  这里产生了几百行的报错信息，除了关键部分（提出没有匹配的`<<`重载符），剩下的关键在于**重载决议 (Overload Resolution)**【在处理时，编译器会尝试匹配已经重载了`<<`的所有类型，不匹配时会返回报错，也就导致标准库内所有重载过`<<`的都会像“报菜名”一样列出来】
++ `Instantiation Stack`（实例化栈），文章给出了一个新的代码示例：
+  ```C++
+  struct A {};
+  struct B {};
+  
+  template<typename T>
+  void test(T a, T b) {
+    std::cout << a << b << std::endl;
+  }
+  
+  int main() {
+    test(A{}, B{}); // #1: a few lines
+    test(A{}, A{}); // #2: hundred lines
+  }
+  ```
+  + 上述两者的错误很明显不一致，前者是因为`A`与`B`的类型不一（`T`占位符表示`test()`只接受类型相同的两者，模板参数推导失败），而后者则是因为缺乏了`<<`重载（模板参数推导成功）
+  + 当许多层模板嵌套时，假如说是最内层模板函数出错，而编译器不得不将整个模板实例化栈都打印出来
+  + 类型约束便显式声明了需要编译时验证的字段，从而避免编译错误的传播（C++20 加入）
+    ```C++
+    template<typename T>
+    requires requires (T x) { std::cout << x; }
+    void print(T x) {
+      std::cout << x << std::endl;
+    }
+    ```
+    不过在 C++20 前，没有这样的方法，只能使用`SFINAE (Substitution failure is not an error)`技术实现类似的功能，对类型实现约束
+    ```C++
+    template<typename T, typename = decltype(std::cout << std::declval<T>())>
+    void print(T x) {
+      std::cout << x << std::endl;
+    }
+    ```
 <br>
 
 ###### 备忘
