@@ -1,10 +1,14 @@
 {
     "rust-analyzer.linkedProjects": [
+        // 基础学习代码
         "./rust_note/basis/world_hello/Cargo.toml",
         "./rust_note/basis/variables/Cargo.toml",
         "./rust_note/basis/complex-num/Cargo.toml",
         "./rust_note/basis/test/owner_test/Cargo.toml",
         "./rust_note/basis/test/simple_list/Cargo.toml",
-        "./rust_note/basis/test/method_test/Cargo.toml"
+        "./rust_note/basis/test/method_test/Cargo.toml",
+        "./rust_note/basis/test/const_test/Cargo.toml",
+        // 入门实战：文件搜索工具
+        "./rust_note/minigrep_files/minigrep/Cargo.toml"
     ]
 }

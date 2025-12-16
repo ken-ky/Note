@@ -2172,7 +2172,10 @@
     }
     ```
 + `const`泛型 (Rust 1.51 添加)：之前的泛型中，所有的泛型都是为了抽象不同的类型，而这里便出现了针对值的泛型：
-  + 基本使用：
+  + 基本使用：目前仅支持以下形式实参
+    + 一个单独的`const`泛型参数
+    + 一个字面量（i.e. 整数、布尔值或字符）
+    + 一个具体的`const`表达式（**表达式中不能包含任何泛型参数**）
     ```rust
     fn display_array(arr: [i32; 3]) {
       println!("{:?}", arr);
@@ -2286,3 +2289,92 @@
   + 任何选择都是权衡得失的，既然我们获得了性能上的巨大优势，那么又失去了什么呢？Rust 是在编译期为泛型对应的多个类型，生成各自的代码，因此损失了编译速度和增大了最终生成文件的大小
   + Rust 通过在编译时进行泛型代码的 **单态化(monomorphization)**来保证效率。单态化是一个通过填充编译时使用的具体类型，**将通用代码转换为特定代码**的过程。
   + 编译器所做的工作正好与我们创建泛型函数的步骤相反，**编译器寻找所有泛型代码被调用的位置并针对具体类型生成代码**
+<br>
+
+###### 特征 Trait
++ 初印象：在之前的代码中，就使用过特征。比如：
+  + `#[derive(Debug)]`可以在定义的`struct`自动派生`Debug`特征
+  + `T: std::ops::Add<Output = T>`中确保了`T`实现了`std::ops::Add`并输出`T`类型才可以正常进入此函数
++ 定义特征：把一些方法组合在一起，目的是定义一个实现某些目标所必需行为的集合
+  ```rust
+  pub trait Summary {
+    fn summarize(&self) -> String;
+  }
+  ```
+  需要注意：
+  + 这里使用`trait`关键字来声明一个特征，`Summary`是特征名。在花括号中定义了特征的所有方法
+  + 特征只定义特征方法的签名，而不进行实现，因此上文代码中只是声明了方法，而没有实现
+  + 接下来，每一个实现这特征类型都需要具体实现该特征的相应方法，编译器也会确保任何实现`Summary`特征的类型都拥有这个签名的定义完全一致的`summarize`方法
++ 为类型实现特征：
+  ```rust
+  pub trait Summary {
+    fn summarize(&self) -> String;
+  }
+  
+  pub struct Post {
+    pub title: String,  // 标题
+    pub author: String,  // 作者
+    pub content: String,  // 内容
+  }
+  impl Summary for Post { // 为 Post 类型实现 Summary 特征
+    fn summarize(&self) -> String {
+      format!("article: {}, and it was written by {}", self.title, self.author)
+    }
+  }
+  
+  pub struct Weibo {
+    pub username: String,
+    pub content: String,
+  }
+  impl Summary for Weibo {
+    fn summarize(&self) -> String {
+      format!("{} updated article named {}", self.username, self.content)
+    }
+  }
+  ```
+  不过特征的作用不仅于此，接下来就是一些更加强大的功能：
+  + 特征定义与实现的位置（孤儿规则）：假如说你想为类型`A`实现特征`T`，那么`A`或者`T`至少有一个是在当前作用域中定义的
+    + 也就是说，无法自行为`String`类型实现一个`Display`特征，因为这两者都不是在当前作用域中定义，而是在标准库内定义的
+    + 这就避免了其他人编写的代码不会破坏已有的代码
+  + 默认实现：可以在特征中定义具有**默认实现**，这样其他类型无需再实现该方法，或者也可以重写该方法
+    + 比如下面给出了特征中定义了**默认实现**的方法：
+      ```rust
+      pub trait Summary {
+        fn summarize(&self) -> String {
+          String::from("(Read more...)")
+        }
+      }
+      ```
+    + 之后两个类型针对这个特征再进行“重载”：
+      ```rust
+      impl Summary for Post {}
+      
+      impl Summary for Weibo {
+        fn summarize(&self) -> String {
+          format!("{} updated article named {}", self.username, self.content)
+        }
+      }
+      ```
+      这使得`Post`使用了特征的默认方法，而`Weibo`使用的是新实现的方法
+    + 还有“大肠包小肠”的玩法：
+      ```rust
+      pub trait Summary {
+        fn summarize_author(&self) -> String;
+        
+        fn summarize(&self) -> String {
+          format!("(Read more from {}...)", self.summarize_author)
+        }
+      }
+      
+      // 这里为了使用`Summary`，只需实现`summarize_author`
+      impl Summary for Weibo {
+        fn summarize_author(&self) -> String {
+          format!("@{}", self.usename)
+        }
+      }
+      
+      // 下面的语句默认调用其中的`summarize`方法
+      println!("I new weibo: {}", weibo.summarize());
+      ```
+      这样的语法，给予了被实现的特征来判断实现特征方法正确与否的空间
++ 使用特征作为函数参数
