@@ -8,6 +8,10 @@
         "./rust_note/basis/test/simple_list/Cargo.toml",
         "./rust_note/basis/test/method_test/Cargo.toml",
         "./rust_note/basis/test/const_test/Cargo.toml",
+        "./rust_note/basis/test/largest_test/Cargo.toml",
+        "./rust_note/basis/test/addop_test/Cargo.toml",
+        "./rust_note/basis/test/print_test/Cargo.toml",
+        "./rust_note/basis/test/sheep_test/Cargo.toml",
         // 入门实战：文件搜索工具
         "./rust_note/minigrep_files/minigrep/Cargo.toml"
     ]

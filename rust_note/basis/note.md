@@ -2377,4 +2377,112 @@
       println!("I new weibo: {}", weibo.summarize());
       ```
       这样的语法，给予了被实现的特征来判断实现特征方法正确与否的空间
-+ 使用特征作为函数参数
++ 使用特征作为函数参数：
+  ```rust
+  pub fn notify(item: &impl Summary) {
+    println!("Breaking news! {}", item.summarize());
+  }
+  ```
+  + `impl Summary`意思为**实现了`Summary`特征**的`item`参数
+  + 可以使用任何了`Summary`特征的类型作为该函数的参数
++ 特征约束(`trait bound`)：
+  + 基本使用：
+    虽然`impl Trait`这种语法易于理解，但实际上这只是个语法糖，完整书写形式如下，其中的`T: Summary`被称为**特征约束**
+    ```rust
+    pub fn notify<T: Summary>(item: &T) {
+      println!("Breaking news! {}", item.summarize());
+    }
+    ```
+    不过就出现了一种情况：
+    ```rust
+    pub fn notify(item1: &impl Summary, item2: &impl Summary) {}
+    ```
+    上面的函数参数无法限制为同一类型的特征，就只能使用如下方法实现：
+    ```rust
+    pub fn notify<T: Summary>(item1: &T, item2: &T) {}
+    ```
+    这使得两参数的类型相同
+  + 多重约束：
+    还可以指定多个约束条件，如：
+    ```rust
+    pub fn notify(item: &(impl Summary + Display)) {}
+    ```
+    除了上述语法糖形式，还可以使用特征约束的形式：
+    ```rust
+    pub fn notify<T: Summary + Display>(item: &T) {}
+    ```
+  + `where`约束：不过伴随约束增加，实际也变得复杂起来，于是引入`where`
+    ```rust
+    fn some_function<T, U>(t: &T, u: &U) -> i32
+      where T: Display + Clone,
+            U: Clone + Debug
+    {}
+    ```
+  + 使用特征约束有条件地实现方法或特征：之前的内容中指出了`+`可用于多条件限制类型，于是针对结构体的方法实现中也可以针对这一限制（特定约束的类型）：
+    ```rust
+    use std::fmt::Display;
+    
+    struct Pair<T> {
+      x: T,
+      y: T,
+    }
+    
+    impl<T> Pair<T> {
+      fn new(x: T, y: T) -> Self {
+        Self {
+          x,
+          y,
+        }
+      }
+    }
+    
+    impl<T: Display + PartialOrd> Pair<T> {
+      fn cmp_display(&self) {
+        if self.x >= self.y {
+          println!("The largest member is x = {}", self.x);
+        } else {
+          println!("The largest member is y = {}", self.y);
+        }
+      }
+    }
+    ```
+  + 也可以有条件地实现特征，比如为实现了`Display`特征的类型实现了`ToString`特征：
+    ```rust
+    impl<T: Display> ToString for T {
+      ...
+    }
+    ```
++ 函数返回中的`impl Trait`：
+  可以通过`impl Trait`来说明一个函数返回一个类型，该类型实现某个特征：
+  ```rust
+  fn returns_summarizable() -> impl Summary {
+    Weibo {
+      username: String::from("surface"),
+      content: String::from(
+        "Nice, nice, nice",
+      )
+    }
+  }
+  ```
+  + 这种方式避免了直接声明真实返回值类型（有的返回值很难写明真实值，比如迭代器和闭包这样的）
+  + 不过，这样返回的缺点是只能返回一种类型
++ 调用方法需要引入特征：
+  在一些场景中，使用`as`关键字做类型转换会有比较大限制，因为你想要在类型转换上拥有完全的控制。例如处理转换错误，那么你将需要`TryInto`：
+  ```rust
+  use std::convert::TryInto;
+  
+  fn main() {
+    let a: i32 = 10;
+    let b: u16 = 100;
+    
+    let b_ = b.try_into().unwrap();
+    
+    if a < b {
+      println!("Ten is less than one hundred.");
+    }
+  }
+  ```
+  Rust 提供了`std::prelude`模块将最常用的标准库中特征提前引入当前作用域中
++ 几个综合性例子：位于`/Note/rust_note/basis/test`
+  + 为自定义类型实现`+`操作：`addop_test`
+  + 自定义类型的打印输出：`print_test`
