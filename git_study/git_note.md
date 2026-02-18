@@ -56,7 +56,12 @@
 <br>
 
 ##### 杂项
-+ 只取一个提交记录
++ 只取一个提交记录：
+  + 有时，为了解决`bug`，不得不进行调试，而这就带来了调试语句的频繁变更问题，若直接进行同步，这些调试语句的变更记录也会进入`Git`的提交树部分
+  + 这就可以使用`git cherry-pick`或是`git rebase -i`这些命令来同步最终的修改结果
++ 提交的技巧：
+  + 有时，会遇到创建了分支后，却需要对之前的提交进行更改
+  + 这时候可以采取`git rebase -i`交换提交节点次序，将需要更改的提交节点置后，进行修改并提交（`git commit --amend`），待更改后还原的策略
 <br>
 
 #### 远程操作
@@ -105,7 +110,7 @@
   + 如果你是在一个大的合作团队中工作, 很可能是`main`被锁定了, 需要一些`Pull Request`流程来合并修改
   + 因为远程服务器拒绝直接`push`提交到`main`，需要按照流程，新建一个分支，需要`reset`本地`main`分支与远程服务器保持一致，`push`这个分支并申请`pull request`
   ```sh
-  $ git branch -f main o/main # 在o/main后创建一个提交
+  $ git branch -f main o/main # 将main指向o/main
   $ git checkout -b feature C2 # 将新创建的C2作为feature分支，并切换到此分支
   $ git push origin feature # push 本地的feature分支
   ```
